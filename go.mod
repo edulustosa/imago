@@ -1,4 +1,4 @@
-module github.com/edulustosa/image-processing-service
+module github.com/edulustosa/img-transform
 
 go 1.23.5
 

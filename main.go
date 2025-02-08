@@ -10,8 +10,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/edulustosa/image-processing-service/config"
-	"github.com/edulustosa/image-processing-service/internal/api/router"
+	"github.com/edulustosa/img-transform/config"
+	"github.com/edulustosa/img-transform/internal/api/router"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
