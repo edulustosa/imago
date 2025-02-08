@@ -1,0 +1,6 @@
+root = "."
+tmp_dir = "bin"
+
+[build]
+cmd = "go build -o ./bin/img-processing ."
+bin = "bin/img-processing"

@@ -1,0 +1,11 @@
+services:
+  db:
+    image: bitnami/postgresql
+    container_name: galleria-db
+    restart: unless-stopped
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRESQL_USERNAME: ${DATABASE_USER}
+      POSTGRESQL_PASSWORD: ${DATABASE_PASSWORD}
+      POSTGRESQL_DATABASE: ${DATABASE_NAME}

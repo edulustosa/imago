@@ -1,0 +1,17 @@
+run:
+  timeout: 5m
+
+linters-settings:
+  gocritic:
+    disabled-checks:
+      - exitAfterDefer
+
+linters:
+  enable:
+    - gocritic
+    - gosec
+    - prealloc
+    - unparam
+    - revive
+    - nilnil
+    - nilerr
