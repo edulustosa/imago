@@ -1,9 +1,11 @@
-module github.com/edulustosa/img-transform
+module github.com/edulustosa/imago
 
 go 1.23.5
 
 require (
+	github.com/anthonynsimon/bild v0.14.0
 	github.com/go-chi/chi/v5 v5.2.1
+	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.7.2
 	github.com/spf13/viper v1.19.0
 )
@@ -27,6 +29,7 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.33.0 // indirect
 	golang.org/x/exp v0.0.0-20250207012021-f9890c6ad9f3 // indirect
+	golang.org/x/image v0.24.0 // indirect
 	golang.org/x/sync v0.11.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect
 	golang.org/x/text v0.22.0 // indirect
