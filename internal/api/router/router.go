@@ -17,8 +17,8 @@ func New() http.Handler {
 		middleware.Recoverer,
 	)
 
-	r.Get("/ping", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("pong"))
+	r.Get("/ping", func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte("pong\n"))
 	})
 
 	return r

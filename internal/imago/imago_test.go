@@ -129,23 +129,23 @@ func TestChangeImageColor(t *testing.T) {
 		t.Errorf("failed to get image file: %s", err.Error())
 	}
 
-	t.Run("grayscale", func(t *testing.T) {
+	t.Run("grayscale", func(_ *testing.T) {
 		grayscaleImg := imago.Transform(img, imago.Transformations{
 			Filters: imago.Filters{
 				Grayscale: true,
 			},
 		})
 
-		imgio.Save("./test_data/grayscale.jpg", grayscaleImg, imgio.JPEGEncoder(100))
+		_ = imgio.Save("./test_data/grayscale.jpg", grayscaleImg, imgio.JPEGEncoder(100))
 	})
 
-	t.Run("sepia", func(t *testing.T) {
+	t.Run("sepia", func(_ *testing.T) {
 		sepiaImg := imago.Transform(img, imago.Transformations{
 			Filters: imago.Filters{
 				Sepia: true,
 			},
 		})
 
-		imgio.Save("./test_data/sepia.jpg", sepiaImg, imgio.JPEGEncoder(100))
+		_ = imgio.Save("./test_data/sepia.jpg", sepiaImg, imgio.JPEGEncoder(100))
 	})
 }
