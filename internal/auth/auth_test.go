@@ -71,24 +71,57 @@ func TestRegister(t *testing.T) {
 func TestLogin(t *testing.T) {
 	repo := new(memoryRepository)
 	authService := auth.New(repo)
+	ctx := context.Background()
 
-	createdUser, err := authService.Register(context.Background(), auth.Request{
-		Username: "john doe",
-		Password: "12345678",
+	t.Run("login", func(t *testing.T) {
+		createdUser, err := authService.Register(ctx, auth.Request{
+			Username: "john doe",
+			Password: "12345678",
+		})
+		if err != nil {
+			t.Errorf("error register user: %v", err)
+		}
+
+		user, err := authService.Login(ctx, auth.Request{
+			Username: "john doe",
+			Password: "12345678",
+		})
+		if err != nil {
+			t.Errorf("error login user: %v", err)
+		}
+
+		if createdUser.Username != user.Username {
+			t.Errorf("expected %s, got %s", createdUser.Username, user.Username)
+		}
 	})
-	if err != nil {
-		t.Errorf("error register user: %v", err)
-	}
 
-	user, err := authService.Login(context.Background(), auth.Request{
-		Username: "john doe",
-		Password: "12345678",
+	repo.users = []models.User{}
+	t.Run("login user not found", func(t *testing.T) {
+		_, err := authService.Login(ctx, auth.Request{
+			Username: "john doe",
+			Password: "12345678",
+		})
+		if err != auth.ErrInvalidCredentials {
+			t.Errorf("expected %v, got %v", auth.ErrInvalidCredentials, err)
+		}
 	})
-	if err != nil {
-		t.Errorf("error login user: %v", err)
-	}
 
-	if createdUser.Username != user.Username {
-		t.Errorf("expected %s, got %s", createdUser.Username, user.Username)
-	}
+	repo.users = []models.User{}
+	t.Run("login invalid password", func(t *testing.T) {
+		_, err := authService.Register(ctx, auth.Request{
+			Username: "john doe",
+			Password: "12345678",
+		})
+		if err != nil {
+			t.Errorf("error register user: %v", err)
+		}
+
+		_, err = authService.Login(ctx, auth.Request{
+			Username: "john doe",
+			Password: "123456",
+		})
+		if err != auth.ErrInvalidCredentials {
+			t.Errorf("expected %v, got %v", auth.ErrInvalidCredentials, err)
+		}
+	})
 }
