@@ -13,6 +13,8 @@ import (
 	"github.com/edulustosa/imago/config"
 	"github.com/edulustosa/imago/internal/api/router"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5/stdlib"
+	"github.com/pressly/goose/v3"
 )
 
 func main() {
@@ -52,7 +54,14 @@ func run(ctx context.Context) error {
 		return fmt.Errorf("failed to ping database: %w", err)
 	}
 
-	r := router.New()
+	if err := runMigrations(ctx, pool); err != nil {
+		return fmt.Errorf("failed to run migrations: %w", err)
+	}
+
+	r := router.New(router.Server{
+		Database: pool,
+		Env:      env,
+	})
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%s", env.Addr),
 		Handler:      r,
@@ -84,6 +93,26 @@ func run(ctx context.Context) error {
 		if err != nil && err != http.ErrServerClosed {
 			return fmt.Errorf("failed to start server: %w", err)
 		}
+	}
+
+	return nil
+}
+
+func runMigrations(ctx context.Context, pool *pgxpool.Pool) error {
+	db := stdlib.OpenDBFromPool(pool)
+	defer db.Close()
+
+	provider, err := goose.NewProvider(
+		goose.DialectPostgres,
+		db,
+		os.DirFS("./internal/database/migrations"),
+	)
+	if err != nil {
+		return err
+	}
+
+	if _, err := provider.Up(ctx); err != nil {
+		return err
 	}
 
 	return nil

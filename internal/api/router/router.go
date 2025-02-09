@@ -3,11 +3,19 @@ package router
 import (
 	"net/http"
 
+	"github.com/edulustosa/imago/config"
+	"github.com/edulustosa/imago/internal/api/handlers"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func New() http.Handler {
+type Server struct {
+	Database *pgxpool.Pool
+	Env      *config.Env
+}
+
+func New(srv Server) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(
@@ -17,9 +25,11 @@ func New() http.Handler {
 		middleware.Recoverer,
 	)
 
-	r.Get("/ping", func(w http.ResponseWriter, _ *http.Request) {
-		_, _ = w.Write([]byte("pong\n"))
-	})
+	authHandlers := &handlers.Auth{
+		Database: srv.Database,
+	}
+
+	r.Post("/register", authHandlers.Register)
 
 	return r
 }

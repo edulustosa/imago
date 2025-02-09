@@ -5,25 +5,21 @@ import (
 	"errors"
 
 	"github.com/edulustosa/imago/internal/database/models"
+	"github.com/edulustosa/imago/internal/domain/user"
 	"golang.org/x/crypto/bcrypt"
 )
 
-type Repository interface {
-	FindByUsername(ctx context.Context, username string) (*models.User, error)
-	Create(ctx context.Context, user models.User) (*models.User, error)
-}
-
 type Auth struct {
-	repo Repository
+	repo user.Repository
 }
 
-func New(repo Repository) *Auth {
+func New(repo user.Repository) *Auth {
 	return &Auth{repo}
 }
 
 type Request struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
+	Username string `json:"username" validate:"required,min=3,max=32"`
+	Password string `json:"password" validate:"required,min=8,max=32"`
 }
 
 var (
