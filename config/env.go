@@ -9,7 +9,8 @@ import (
 type Env struct {
 	DatabaseURL string `mapstructure:"DATABASE_URL"`
 
-	Addr string `mapstructure:"SERVER_PORT"`
+	Addr      string `mapstructure:"SERVER_PORT"`
+	JWTSecret string `mapstructure:"JWT_SECRET"`
 }
 
 func LoadEnv(envPath string) (*Env, error) {

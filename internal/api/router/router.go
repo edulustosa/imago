@@ -5,6 +5,7 @@ import (
 
 	"github.com/edulustosa/imago/config"
 	"github.com/edulustosa/imago/internal/api/handlers"
+	"github.com/edulustosa/imago/internal/api/middlewares"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -27,9 +28,17 @@ func New(srv Server) http.Handler {
 
 	authHandlers := &handlers.Auth{
 		Database: srv.Database,
+		Env:      srv.Env,
 	}
 
 	r.Post("/register", authHandlers.Register)
+	r.Post("/login", authHandlers.Login)
+
+	authMiddleware := &middlewares.AuthMiddleware{Env: srv.Env}
+	// Authenticated routes
+	r.Group(func(r chi.Router) {
+		r.Use(authMiddleware.VerifyToken)
+	})
 
 	return r
 }

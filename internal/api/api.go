@@ -3,11 +3,16 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strings"
 
 	"github.com/go-playground/validator/v10"
 )
+
+type ContextKey string
+
+const UserIDKey ContextKey = "userId"
 
 type Error struct {
 	Message string `json:"message"`
@@ -71,7 +76,9 @@ func SendError(w http.ResponseWriter, status int, errs ...Error) {
 	Encode(w, status, Errors{Errors: errs})
 }
 
-func InternalError(w http.ResponseWriter) {
+func InternalError(w http.ResponseWriter, logMsg string, args ...any) {
+	slog.Error(logMsg, args...)
+
 	SendError(w, http.StatusInternalServerError, Error{
 		Message: "something went wrong, please try again later",
 	})
