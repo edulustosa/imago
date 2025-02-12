@@ -11,6 +11,9 @@ type Env struct {
 
 	Addr      string `mapstructure:"SERVER_PORT"`
 	JWTSecret string `mapstructure:"JWT_SECRET"`
+
+	BucketName string `mapstructure:"BUCKET_NAME"`
+	AWSRegion  string `mapstructure:"AWS_REGION"`
 }
 
 func LoadEnv(envPath string) (*Env, error) {

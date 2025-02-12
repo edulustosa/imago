@@ -10,6 +10,8 @@ import (
 	"syscall"
 	"time"
 
+	awsConfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/edulustosa/imago/config"
 	"github.com/edulustosa/imago/internal/api/router"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -58,9 +60,16 @@ func run(ctx context.Context) error {
 		return fmt.Errorf("failed to run migrations: %w", err)
 	}
 
+	cfg, err := awsConfig.LoadDefaultConfig(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to load AWS config: %w", err)
+	}
+	s3Client := s3.NewFromConfig(cfg)
+
 	r := router.New(router.Server{
 		Database: pool,
 		Env:      env,
+		S3Client: s3Client,
 	})
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%s", env.Addr),

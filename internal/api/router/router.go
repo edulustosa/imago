@@ -3,6 +3,7 @@ package router
 import (
 	"net/http"
 
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/edulustosa/imago/config"
 	"github.com/edulustosa/imago/internal/api/handlers"
 	"github.com/edulustosa/imago/internal/api/middlewares"
@@ -14,6 +15,7 @@ import (
 type Server struct {
 	Database *pgxpool.Pool
 	Env      *config.Env
+	S3Client *s3.Client
 }
 
 func New(srv Server) http.Handler {
