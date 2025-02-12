@@ -1,6 +1,8 @@
 package imago_test
 
 import (
+	"bytes"
+	"net/http"
 	"testing"
 
 	"github.com/anthonynsimon/bild/imgio"
@@ -148,4 +150,85 @@ func TestChangeImageColor(t *testing.T) {
 
 		_ = imgio.Save("./test_data/sepia.jpg", sepiaImg, imgio.JPEGEncoder(100))
 	})
+}
+
+func TestConvertImage(t *testing.T) {
+	img, err := imgio.Open("./test_data/flowers.jpg")
+	if err != nil {
+		t.Errorf("failed to get image file: %s", err.Error())
+	}
+
+	t.Run("jpeg", func(t *testing.T) {
+		buff := new(bytes.Buffer)
+		if err := imago.Encode(buff, img, "jpeg"); err != nil {
+			t.Errorf("failed to encode image: %s", err.Error())
+		}
+
+		ct := http.DetectContentType(buff.Bytes())
+		assertContentType(t, "image/jpeg", ct)
+	})
+
+	t.Run("png", func(t *testing.T) {
+		buff := new(bytes.Buffer)
+		if err := imago.Encode(buff, img, "png"); err != nil {
+			t.Errorf("failed to encode image: %s", err.Error())
+		}
+
+		ct := http.DetectContentType(buff.Bytes())
+		assertContentType(t, "image/png", ct)
+	})
+
+	t.Run("gif", func(t *testing.T) {
+		buff := new(bytes.Buffer)
+		if err := imago.Encode(buff, img, "gif"); err != nil {
+			t.Errorf("failed to encode image: %s", err.Error())
+		}
+
+		ct := http.DetectContentType(buff.Bytes())
+		assertContentType(t, "image/gif", ct)
+	})
+
+	t.Run("bmp", func(t *testing.T) {
+		buff := new(bytes.Buffer)
+		if err := imago.Encode(buff, img, "bmp"); err != nil {
+			t.Errorf("failed to encode image: %s", err.Error())
+		}
+
+		ct := http.DetectContentType(buff.Bytes())
+		assertContentType(t, "image/bmp", ct)
+	})
+
+	t.Run("tiff", func(t *testing.T) {
+		buff := new(bytes.Buffer)
+		if err := imago.Encode(buff, img, "tiff"); err != nil {
+			t.Errorf("failed to encode image: %s", err.Error())
+		}
+
+		ct := http.DetectContentType(buff.Bytes())
+		assertContentType(t, "application/octet-stream/*  */", ct)
+	})
+
+	t.Run("webp", func(t *testing.T) {
+		buff := new(bytes.Buffer)
+		if err := imago.Encode(buff, img, "webp"); err != nil {
+			t.Errorf("failed to encode image: %s", err.Error())
+		}
+
+		ct := http.DetectContentType(buff.Bytes())
+		assertContentType(t, "image/webp", ct)
+	})
+
+	t.Run("unsupported format", func(t *testing.T) {
+		buff := new(bytes.Buffer)
+		if err := imago.Encode(buff, img, "unsupported"); err == nil {
+			t.Error("expected error, got nil")
+		}
+	})
+}
+
+func assertContentType(t *testing.T, expected, actual string) {
+	t.Helper()
+	if expected != actual {
+		t.Errorf("expected content type %s, got %s", expected, actual)
+	}
 }
