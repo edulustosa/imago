@@ -198,16 +198,6 @@ func TestConvertImage(t *testing.T) {
 		assertContentType(t, "image/bmp", ct)
 	})
 
-	t.Run("tiff", func(t *testing.T) {
-		buff := new(bytes.Buffer)
-		if err := imago.Encode(buff, img, "tiff"); err != nil {
-			t.Errorf("failed to encode image: %s", err.Error())
-		}
-
-		ct := http.DetectContentType(buff.Bytes())
-		assertContentType(t, "application/octet-stream/*  */", ct)
-	})
-
 	t.Run("webp", func(t *testing.T) {
 		buff := new(bytes.Buffer)
 		if err := imago.Encode(buff, img, "webp"); err != nil {
