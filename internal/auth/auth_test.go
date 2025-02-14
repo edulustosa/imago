@@ -2,34 +2,15 @@ package auth_test
 
 import (
 	"context"
-	"errors"
 	"testing"
 
 	"github.com/edulustosa/imago/internal/auth"
 	"github.com/edulustosa/imago/internal/database/models"
+	"github.com/edulustosa/imago/mock"
 )
 
-type memoryRepository struct {
-	users []models.User
-}
-
-func (r *memoryRepository) Create(_ context.Context, user models.User) (*models.User, error) {
-	r.users = append(r.users, user)
-	return &user, nil
-}
-
-func (r *memoryRepository) FindByUsername(_ context.Context, username string) (*models.User, error) {
-	for _, user := range r.users {
-		if user.Username == username {
-			return &user, nil
-		}
-	}
-
-	return nil, errors.New("user not found")
-}
-
 func TestRegister(t *testing.T) {
-	repo := new(memoryRepository)
+	repo := mock.NewUserRepo()
 	authService := auth.New(repo)
 	ctx := context.Background()
 
@@ -47,7 +28,7 @@ func TestRegister(t *testing.T) {
 		}
 	})
 
-	repo.users = []models.User{}
+	repo.Users = []models.User{}
 
 	t.Run("register user already exists", func(t *testing.T) {
 		_, err := authService.Register(ctx, auth.Request{
@@ -69,7 +50,7 @@ func TestRegister(t *testing.T) {
 }
 
 func TestLogin(t *testing.T) {
-	repo := new(memoryRepository)
+	repo := mock.NewUserRepo()
 	authService := auth.New(repo)
 	ctx := context.Background()
 
@@ -95,7 +76,7 @@ func TestLogin(t *testing.T) {
 		}
 	})
 
-	repo.users = []models.User{}
+	repo.Users = []models.User{}
 	t.Run("login user not found", func(t *testing.T) {
 		_, err := authService.Login(ctx, auth.Request{
 			Username: "john doe",
@@ -106,7 +87,7 @@ func TestLogin(t *testing.T) {
 		}
 	})
 
-	repo.users = []models.User{}
+	repo.Users = []models.User{}
 	t.Run("login invalid password", func(t *testing.T) {
 		_, err := authService.Register(ctx, auth.Request{
 			Username: "john doe",

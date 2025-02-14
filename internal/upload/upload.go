@@ -31,6 +31,11 @@ func (f *fsUploader) Upload(
 	imgData []byte,
 	path string,
 ) (string, error) {
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return "", fmt.Errorf("failed to create directory: %w", err)
+	}
+
 	if err := os.WriteFile(path, imgData, 0600); err != nil {
 		return "", fmt.Errorf("failed to write file: %w", err)
 	}

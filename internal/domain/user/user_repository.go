@@ -4,11 +4,13 @@ import (
 	"context"
 
 	"github.com/edulustosa/imago/internal/database/models"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type Repository interface {
+	FindByID(ctx context.Context, id uuid.UUID) (*models.User, error)
 	FindByUsername(ctx context.Context, username string) (*models.User, error)
 	Create(ctx context.Context, user models.User) (*models.User, error)
 }
@@ -34,6 +36,13 @@ func scanUser(row pgx.Row) (*models.User, error) {
 	)
 
 	return &user, err
+}
+
+const findByID = "SELECT * FROM users WHERE id = $1"
+
+func (r *repo) FindByID(ctx context.Context, id uuid.UUID) (*models.User, error) {
+	row := r.db.QueryRow(ctx, findByID, id)
+	return scanUser(row)
 }
 
 const findByUsername = "SELECT * FROM users WHERE username = $1"

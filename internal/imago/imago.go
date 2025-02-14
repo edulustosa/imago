@@ -19,7 +19,7 @@ type Transformations struct {
 	Resize  Resize  `json:"resize"`
 	Crop    Crop    `json:"crop"`
 	Rotate  float64 `json:"rotate"`
-	Format  string  `json:"format"`
+	Format  string  `json:"format" validate:"required"`
 	Filters Filters `json:"filters"`
 }
 

@@ -7,7 +7,7 @@ import (
 )
 
 type Image struct {
-	ID        uint      `json:"id"`
+	ID        int       `json:"id"`
 	UserID    uuid.UUID `json:"userId"`
 	ImageURL  string    `json:"imageUrl"`
 	Format    string    `json:"format"`
