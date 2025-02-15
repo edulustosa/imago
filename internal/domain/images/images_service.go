@@ -43,3 +43,16 @@ func (s *Service) GetImage(
 
 	return img, nil
 }
+
+func (s *Service) GetImages(
+	ctx context.Context,
+	userID uuid.UUID,
+	page, limit int,
+) ([]models.Image, error) {
+	user, err := s.userRepository.FindByID(ctx, userID)
+	if err != nil {
+		return nil, ErrUserNotFound
+	}
+
+	return s.repo.FindManyByUserID(ctx, user.ID, page, limit)
+}

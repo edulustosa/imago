@@ -14,6 +14,8 @@ type ContextKey string
 
 const UserIDKey ContextKey = "userId"
 
+type Map map[string]any
+
 type Error struct {
 	Message string `json:"message"`
 	Details string `json:"details"`

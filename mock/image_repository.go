@@ -66,3 +66,20 @@ func (r *ImageRepo) Update(
 
 	return nil, errors.New("image not found")
 }
+
+func (r *ImageRepo) FindManyByUserID(
+	_ context.Context,
+	userID uuid.UUID,
+	page, limit int,
+) ([]models.Image, error) {
+	var images []models.Image
+	for _, img := range r.Images {
+		if img.UserID == userID {
+			images = append(images, img)
+		}
+	}
+
+	images = images[(page-1)*limit : page*limit]
+
+	return images, nil
+}

@@ -173,3 +173,35 @@ func (h *Images) GetImage(w http.ResponseWriter, r *http.Request) {
 
 	api.Encode(w, http.StatusOK, imgInfo)
 }
+
+func (h *Images) GetImages(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value(api.UserIDKey).(uuid.UUID)
+	page, err := strconv.Atoi(r.URL.Query().Get("page"))
+	if err != nil {
+		page = 1
+	}
+
+	limit, err := strconv.Atoi(r.URL.Query().Get("limit"))
+	if err != nil {
+		limit = 10
+	}
+
+	userRepository := user.NewRepo(h.Database)
+	imageRepository := images.NewRepo(h.Database)
+	imageService := images.NewService(imageRepository, userRepository)
+
+	imgs, err := imageService.GetImages(r.Context(), userID, page, limit)
+	if err != nil {
+		if errors.Is(err, images.ErrUserNotFound) {
+			api.SendError(w, http.StatusNotFound, api.Error{
+				Message: "user not found",
+			})
+			return
+		}
+
+		api.InternalError(w, "failed to get images", "error", err)
+		return
+	}
+
+	api.Encode(w, http.StatusOK, api.Map{"images": imgs})
+}

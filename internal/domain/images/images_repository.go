@@ -15,6 +15,7 @@ type Repository interface {
 	Create(ctx context.Context, img models.Image) (*models.Image, error)
 	FindByFilename(ctx context.Context, filename string, userID uuid.UUID) (*models.Image, error)
 	Update(ctx context.Context, id int, userID uuid.UUID, imgInfo models.Image) (*models.Image, error)
+	FindManyByUserID(ctx context.Context, userID uuid.UUID, page, limit int) ([]models.Image, error)
 }
 
 type repo struct {
@@ -117,4 +118,34 @@ func (r *repo) Update(
 		userID,
 	)
 	return scanImage(row)
+}
+
+const findManyByUserID = `
+	SELECT * FROM images
+	WHERE user_id = $1
+	ORDER BY created_at DESC
+	LIMIT $2 OFFSET $3
+`
+
+func (r *repo) FindManyByUserID(
+	ctx context.Context,
+	userID uuid.UUID,
+	page, limit int,
+) ([]models.Image, error) {
+	rows, err := r.db.Query(ctx, findManyByUserID, userID, limit, (page-1)*limit)
+	if err != nil {
+		return nil, fmt.Errorf("could not query images: %w", err)
+	}
+
+	images := make([]models.Image, 0, limit)
+	for rows.Next() {
+		img, err := scanImage(rows)
+		if err != nil {
+			return nil, err
+		}
+
+		images = append(images, *img)
+	}
+
+	return images, nil
 }
