@@ -9,15 +9,15 @@ import (
 	"github.com/google/uuid"
 )
 
-type userMemoryRepo struct {
+type UserMemoryRepo struct {
 	Users []models.User
 }
 
-func NewUserRepo() *userMemoryRepo {
-	return &userMemoryRepo{}
+func NewUserRepo() *UserMemoryRepo {
+	return &UserMemoryRepo{}
 }
 
-func (r *userMemoryRepo) FindByID(_ context.Context, id uuid.UUID) (*models.User, error) {
+func (r *UserMemoryRepo) FindByID(_ context.Context, id uuid.UUID) (*models.User, error) {
 	for _, u := range r.Users {
 		if u.ID == id {
 			return &u, nil
@@ -27,7 +27,7 @@ func (r *userMemoryRepo) FindByID(_ context.Context, id uuid.UUID) (*models.User
 	return nil, errors.New("user not found")
 }
 
-func (r *userMemoryRepo) FindByUsername(_ context.Context, username string) (*models.User, error) {
+func (r *UserMemoryRepo) FindByUsername(_ context.Context, username string) (*models.User, error) {
 	for _, u := range r.Users {
 		if u.Username == username {
 			return &u, nil
@@ -37,7 +37,7 @@ func (r *userMemoryRepo) FindByUsername(_ context.Context, username string) (*mo
 	return nil, errors.New("user not found")
 }
 
-func (r *userMemoryRepo) Create(_ context.Context, user models.User) (*models.User, error) {
+func (r *UserMemoryRepo) Create(_ context.Context, user models.User) (*models.User, error) {
 	user.ID = uuid.New()
 	user.CreatedAt = time.Now()
 	user.UpdatedAt = time.Now()

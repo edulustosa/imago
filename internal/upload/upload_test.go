@@ -35,7 +35,7 @@ func TestFileSystemUpload(t *testing.T) {
 		t.Errorf("failed to open image: %v", err)
 	}
 
-	imgURL, err := fsUploader.GetImageURL(ctx, "./test_data/flowers.png")
+	imgURL, err := fsUploader.GetImage(ctx, "./test_data/flowers.png")
 	if err != nil {
 		t.Errorf("failed to get image: %v", err)
 	}

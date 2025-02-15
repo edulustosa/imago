@@ -1,0 +1,84 @@
+package handlers
+
+import (
+	"bytes"
+	"errors"
+	"image"
+	"net/http"
+
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/edulustosa/imago/config"
+	"github.com/edulustosa/imago/internal/api"
+	"github.com/edulustosa/imago/internal/domain/images"
+	"github.com/edulustosa/imago/internal/domain/user"
+	"github.com/edulustosa/imago/internal/imago"
+	"github.com/edulustosa/imago/internal/services/storage"
+	"github.com/edulustosa/imago/internal/upload"
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
+)
+
+type Images struct {
+	Database *pgxpool.Pool
+	Env      *config.Env
+	S3       *s3.Client
+}
+
+func (h *Images) Upload(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value(api.UserIDKey).(uuid.UUID)
+	if err := r.ParseMultipartForm(10 << 20); err != nil {
+		api.SendError(w, http.StatusBadRequest, api.Error{
+			Message: "failed to parse form",
+		})
+		return
+	}
+
+	file, handler, err := r.FormFile("image")
+	if err != nil {
+		api.SendError(w, http.StatusBadRequest, api.Error{
+			Message: "failed to read file",
+		})
+		return
+	}
+	defer file.Close()
+
+	img, format, err := image.Decode(file)
+	if err != nil {
+		api.SendError(w, http.StatusBadRequest, api.Error{
+			Message: "failed to decode image",
+		})
+		return
+	}
+
+	imgBuff := new(bytes.Buffer)
+	if err := imago.Encode(imgBuff, img, format); err != nil {
+		api.SendError(w, http.StatusBadRequest, api.Error{
+			Message: err.Error(),
+		})
+		return
+	}
+
+	userRepository := user.NewRepo(h.Database)
+	imageRepository := images.NewRepo(h.Database)
+	s3Uploader := upload.NewS3Uploader(h.S3, h.Env.BucketName)
+
+	imageStorage := storage.NewImageStorage(s3Uploader, userRepository, imageRepository)
+	imgInfo, err := imageStorage.Upload(r.Context(), userID, imgBuff.Bytes(), storage.Metadata{
+		Filename: handler.Filename,
+		Format:   format,
+		Alt:      r.FormValue("alt"),
+	})
+	if err != nil {
+		if errors.Is(err, storage.ErrUserNotFound) {
+			api.SendError(w, http.StatusNotFound, api.Error{
+				Message: "user not found",
+			})
+			return
+		}
+
+		api.InternalError(w, "failed to upload image", "error", err)
+		return
+	}
+
+	api.Encode(w, http.StatusCreated, imgInfo)
+}

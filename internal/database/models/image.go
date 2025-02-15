@@ -10,6 +10,7 @@ type Image struct {
 	ID        int       `json:"id"`
 	UserID    uuid.UUID `json:"userId"`
 	ImageURL  string    `json:"imageUrl"`
+	Filename  string    `json:"filename"`
 	Format    string    `json:"format"`
 	Alt       string    `json:"alt"`
 	CreatedAt time.Time `json:"createdAt"`

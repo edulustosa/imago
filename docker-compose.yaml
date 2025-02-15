@@ -1,7 +1,7 @@
 services:
   db:
     image: bitnami/postgresql
-    container_name: galleria-db
+    container_name: imago-db
     restart: unless-stopped
     ports:
       - 5432:5432

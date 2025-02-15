@@ -13,7 +13,7 @@ import (
 
 type Uploader interface {
 	Upload(ctx context.Context, imgData []byte, filepath string) (string, error)
-	GetImageURL(ctx context.Context, filepath string) (string, error)
+	GetImage(ctx context.Context, filepath string) (string, error)
 }
 
 type fsUploader struct {
@@ -43,7 +43,7 @@ func (f *fsUploader) Upload(
 	return filepath.Join(f.baseURL, path), nil
 }
 
-func (f *fsUploader) GetImageURL(
+func (f *fsUploader) GetImage(
 	_ context.Context,
 	path string,
 ) (string, error) {
@@ -72,12 +72,11 @@ func (s *s3Uploader) Upload(
 	imgData []byte,
 	filepath string,
 ) (string, error) {
-	output, err := s.client.PutObject(ctx, &s3.PutObjectInput{
+	_, err := s.client.PutObject(ctx, &s3.PutObjectInput{
 		Bucket: aws.String(s.bucket),
 		Body:   bytes.NewReader(imgData),
 		Key:    aws.String(filepath),
 	})
-	fmt.Println(output)
 	if err != nil {
 		return "", fmt.Errorf("failed to upload file: %w", err)
 	}
@@ -85,10 +84,7 @@ func (s *s3Uploader) Upload(
 	return fmt.Sprintf("https://%s.s3.amazonaws.com/%s", s.bucket, filepath), nil
 }
 
-func (s *s3Uploader) GetImageURL(
-	ctx context.Context,
-	filepath string,
-) (string, error) {
+func (s *s3Uploader) GetImage(ctx context.Context, filepath string) (string, error) {
 	_, err := s.client.HeadObject(ctx, &s3.HeadObjectInput{
 		Bucket: aws.String(s.bucket),
 		Key:    aws.String(filepath),

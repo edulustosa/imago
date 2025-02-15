@@ -40,6 +40,14 @@ func New(srv Server) http.Handler {
 	// Authenticated routes
 	r.Group(func(r chi.Router) {
 		r.Use(authMiddleware.VerifyToken)
+
+		imagesHandler := &handlers.Images{
+			Database: srv.Database,
+			Env:      srv.Env,
+			S3:       srv.S3Client,
+		}
+
+		r.Post("/images", imagesHandler.Upload)
 	})
 
 	return r

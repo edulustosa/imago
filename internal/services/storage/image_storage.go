@@ -58,14 +58,20 @@ func (s *ImageStorage) Upload(
 		return nil, fmt.Errorf("failed to upload image: %w", err)
 	}
 
+	imgInfo, err := s.imageRepository.FindByFilename(ctx, metadata.Filename)
+	if err == nil {
+		return imgInfo, nil
+	}
+
 	imgModel := models.Image{
 		UserID:   usr.ID,
 		ImageURL: imgURL,
+		Filename: metadata.Filename,
 		Format:   metadata.Format,
 		Alt:      metadata.Alt,
 	}
 
-	imgInfo, err := s.imageRepository.Create(ctx, imgModel)
+	imgInfo, err = s.imageRepository.Create(ctx, imgModel)
 	if err != nil {
 		return nil, fmt.Errorf("failed to save image info: %w", err)
 	}
