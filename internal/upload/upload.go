@@ -14,6 +14,7 @@ import (
 type Uploader interface {
 	Upload(ctx context.Context, imgData []byte, filepath string) (string, error)
 	GetImage(ctx context.Context, filepath string) (string, error)
+	DownloadImage(ctx context.Context, url string) ([]byte, error)
 }
 
 type fsUploader struct {
@@ -32,11 +33,11 @@ func (f *fsUploader) Upload(
 	path string,
 ) (string, error) {
 	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(filepath.Join(f.baseURL, dir), 0755); err != nil {
 		return "", fmt.Errorf("failed to create directory: %w", err)
 	}
 
-	if err := os.WriteFile(path, imgData, 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(f.baseURL, path), imgData, 0600); err != nil {
 		return "", fmt.Errorf("failed to write file: %w", err)
 	}
 
@@ -53,6 +54,13 @@ func (f *fsUploader) GetImage(
 	}
 
 	return filepath.Join(f.baseURL, path), nil
+}
+
+func (f *fsUploader) DownloadImage(
+	_ context.Context,
+	url string,
+) ([]byte, error) {
+	return os.ReadFile(url)
 }
 
 type s3Uploader struct {
@@ -94,4 +102,22 @@ func (s *s3Uploader) GetImage(ctx context.Context, filepath string) (string, err
 	}
 
 	return fmt.Sprintf("https://%s.s3.amazonaws.com/%s", s.bucket, filepath), nil
+}
+
+func (s *s3Uploader) DownloadImage(ctx context.Context, url string) ([]byte, error) {
+	resp, err := s.client.GetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(s.bucket),
+		Key:    aws.String(url),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get object: %w", err)
+	}
+
+	buf := new(bytes.Buffer)
+	_, err = buf.ReadFrom(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read object: %w", err)
+	}
+
+	return buf.Bytes(), nil
 }

@@ -5,13 +5,16 @@ import (
 	"fmt"
 
 	"github.com/edulustosa/imago/internal/database/models"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type Repository interface {
+	FindByID(ctx context.Context, id int, userID uuid.UUID) (*models.Image, error)
 	Create(ctx context.Context, img models.Image) (*models.Image, error)
-	FindByFilename(ctx context.Context, filename string) (*models.Image, error)
+	FindByFilename(ctx context.Context, filename string, userID uuid.UUID) (*models.Image, error)
+	Update(ctx context.Context, id int, userID uuid.UUID, imgInfo models.Image) (*models.Image, error)
 }
 
 type repo struct {
@@ -21,17 +24,6 @@ type repo struct {
 func NewRepo(db *pgxpool.Pool) Repository {
 	return &repo{db}
 }
-
-const create = `
-	INSERT INTO images (
-		user_id,
-		image_url,
-		filename,
-		format,
-		alt	
-	) VALUES ($1, $2, $3, $4, $5)
-	RETURNING *
-`
 
 func scanImage(row pgx.Row) (*models.Image, error) {
 	var img models.Image
@@ -51,6 +43,28 @@ func scanImage(row pgx.Row) (*models.Image, error) {
 	return &img, nil
 }
 
+const findByID = "SELECT * FROM images WHERE id = $1 AND user_id = $2"
+
+func (r *repo) FindByID(
+	ctx context.Context,
+	id int,
+	userID uuid.UUID,
+) (*models.Image, error) {
+	row := r.db.QueryRow(ctx, findByID, id, userID)
+	return scanImage(row)
+}
+
+const create = `
+	INSERT INTO images (
+		user_id,
+		image_url,
+		filename,
+		format,
+		alt	
+	) VALUES ($1, $2, $3, $4, $5)
+	RETURNING *
+`
+
 func (r *repo) Create(ctx context.Context, img models.Image) (*models.Image, error) {
 	row := r.db.QueryRow(
 		ctx,
@@ -64,9 +78,43 @@ func (r *repo) Create(ctx context.Context, img models.Image) (*models.Image, err
 	return scanImage(row)
 }
 
-const findByFilename = "SELECT * FROM images WHERE filename = $1"
+const findByFilename = "SELECT * FROM images WHERE filename = $1 AND user_id = $2"
 
-func (r *repo) FindByFilename(ctx context.Context, filename string) (*models.Image, error) {
-	row := r.db.QueryRow(ctx, findByFilename, filename)
+func (r *repo) FindByFilename(
+	ctx context.Context,
+	filename string,
+	userID uuid.UUID,
+) (*models.Image, error) {
+	row := r.db.QueryRow(ctx, findByFilename, filename, userID)
+	return scanImage(row)
+}
+
+const update = `
+	UPDATE images
+	SET image_url = $1,
+		filename = $2,
+		format = $3,
+		alt = $4,
+		updated_at = NOW()
+	WHERE id = $5 AND user_id = $6
+	RETURNING *
+`
+
+func (r *repo) Update(
+	ctx context.Context,
+	id int,
+	userID uuid.UUID,
+	imgInfo models.Image,
+) (*models.Image, error) {
+	row := r.db.QueryRow(
+		ctx,
+		update,
+		imgInfo.ImageURL,
+		imgInfo.Filename,
+		imgInfo.Format,
+		imgInfo.Alt,
+		id,
+		userID,
+	)
 	return scanImage(row)
 }
