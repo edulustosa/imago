@@ -61,14 +61,14 @@ func (f *fsUploader) DownloadImage(
 	_ context.Context,
 	url string,
 ) ([]byte, error) {
-	return os.ReadFile(url)
+	return os.ReadFile(fmt.Sprintf("%s/%s", f.baseURL, url))
 }
 
 func (f *fsUploader) Delete(
 	_ context.Context,
 	path string,
 ) error {
-	return os.Remove(path)
+	return os.Remove(filepath.Join(f.baseURL, path))
 }
 
 type s3Uploader struct {
