@@ -139,3 +139,37 @@ func (h *Images) Transform(w http.ResponseWriter, r *http.Request) {
 
 	api.Encode(w, http.StatusOK, imgInfo)
 }
+
+func (h *Images) GetImage(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value(api.UserIDKey).(uuid.UUID)
+	imageID, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil {
+		api.SendError(w, http.StatusBadRequest, api.Error{
+			Message: "invalid image id",
+		})
+		return
+	}
+
+	userRepository := user.NewRepo(h.Database)
+	imageRepository := images.NewRepo(h.Database)
+	imageService := images.NewService(imageRepository, userRepository)
+
+	imgInfo, err := imageService.GetImage(r.Context(), imageID, userID)
+	if err != nil {
+		if errors.Is(err, images.ErrImageNotFound) {
+			api.SendError(w, http.StatusNotFound, api.Error{
+				Message: "image not found",
+			})
+			return
+		}
+
+		if errors.Is(err, images.ErrUserNotFound) {
+			api.SendError(w, http.StatusNotFound, api.Error{
+				Message: "user not found",
+			})
+			return
+		}
+	}
+
+	api.Encode(w, http.StatusOK, imgInfo)
+}

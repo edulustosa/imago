@@ -49,6 +49,7 @@ func New(srv Server) http.Handler {
 
 		r.Post("/images", imagesHandler.Upload)
 		r.Post("/images/{id}/transform", imagesHandler.Transform)
+		r.Get("/images/{id}", imagesHandler.GetImage)
 	})
 
 	return r
