@@ -5,6 +5,7 @@ import (
 	"errors"
 	"image"
 	"net/http"
+	"strconv"
 
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/edulustosa/imago/config"
@@ -14,6 +15,7 @@ import (
 	"github.com/edulustosa/imago/internal/imago"
 	"github.com/edulustosa/imago/internal/services/storage"
 	"github.com/edulustosa/imago/internal/upload"
+	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -81,4 +83,59 @@ func (h *Images) Upload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	api.Encode(w, http.StatusCreated, imgInfo)
+}
+
+type TransformRequest struct {
+	Transformations imago.Transformations `json:"transformations" validate:"required"`
+}
+
+func (h *Images) Transform(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value(api.UserIDKey).(uuid.UUID)
+	imageID, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil {
+		api.SendError(w, http.StatusBadRequest, api.Error{
+			Message: "invalid image id",
+		})
+		return
+	}
+
+	t, problems, err := api.Decode[TransformRequest](r)
+	if err != nil {
+		api.InvalidRequest(w, problems)
+		return
+	}
+
+	userRepository := user.NewRepo(h.Database)
+	imageRepository := images.NewRepo(h.Database)
+	s3Uploader := upload.NewS3Uploader(h.S3, h.Env.BucketName)
+
+	imageStorage := storage.NewImageStorage(s3Uploader, userRepository, imageRepository)
+	imgInfo, err := imageStorage.Transform(r.Context(), userID, imageID, t.Transformations)
+	if err != nil {
+		if errors.Is(err, storage.ErrUserNotFound) {
+			api.SendError(w, http.StatusNotFound, api.Error{
+				Message: "user not found",
+			})
+			return
+		}
+
+		if errors.Is(err, storage.ErrImageNotFound) {
+			api.SendError(w, http.StatusNotFound, api.Error{
+				Message: "image not found",
+			})
+			return
+		}
+
+		if errors.Is(err, storage.ErrInvalidFormat) {
+			api.SendError(w, http.StatusBadRequest, api.Error{
+				Message: "image format not supported",
+			})
+			return
+		}
+
+		api.InternalError(w, "failed to transform image", "error", err)
+		return
+	}
+
+	api.Encode(w, http.StatusOK, imgInfo)
 }

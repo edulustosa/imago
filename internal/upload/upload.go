@@ -15,6 +15,7 @@ type Uploader interface {
 	Upload(ctx context.Context, imgData []byte, filepath string) (string, error)
 	GetImage(ctx context.Context, filepath string) (string, error)
 	DownloadImage(ctx context.Context, url string) ([]byte, error)
+	Delete(ctx context.Context, filepath string) error
 }
 
 type fsUploader struct {
@@ -61,6 +62,13 @@ func (f *fsUploader) DownloadImage(
 	url string,
 ) ([]byte, error) {
 	return os.ReadFile(url)
+}
+
+func (f *fsUploader) Delete(
+	_ context.Context,
+	path string,
+) error {
+	return os.Remove(path)
 }
 
 type s3Uploader struct {
@@ -120,4 +128,13 @@ func (s *s3Uploader) DownloadImage(ctx context.Context, url string) ([]byte, err
 	}
 
 	return buf.Bytes(), nil
+}
+
+func (s *s3Uploader) Delete(ctx context.Context, filepath string) error {
+	_, err := s.client.DeleteObject(ctx, &s3.DeleteObjectInput{
+		Bucket: aws.String(s.bucket),
+		Key:    aws.String(filepath),
+	})
+
+	return err
 }

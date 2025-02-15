@@ -6,8 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"image"
+	"log/slog"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/edulustosa/imago/internal/database/models"
 	"github.com/edulustosa/imago/internal/domain/images"
@@ -109,7 +111,10 @@ func (s *ImageStorage) Transform(
 		return nil, ErrImageNotFound
 	}
 
-	imgData, err := s.uploader.DownloadImage(ctx, imgInfo.ImageURL)
+	imgData, err := s.uploader.DownloadImage(
+		ctx,
+		fmt.Sprintf("%s/%s", userID.String(), imgInfo.Filename),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to download image: %w", err)
 	}
@@ -125,23 +130,39 @@ func (s *ImageStorage) Transform(
 		return nil, ErrInvalidFormat
 	}
 
-	_, err = s.uploader.Upload(
+	filename := updateFilenameExt(imgInfo.Filename, t.Format)
+	newImageURL, err := s.uploader.Upload(
 		ctx,
 		imgBuffer.Bytes(),
 		fmt.Sprintf(
 			"%s/%s",
 			userID.String(),
-			updateFilenameExt(imgInfo.Filename, t.Format),
+			filename,
 		),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to upload image: %w", err)
 	}
 
+	if t.Format != imgInfo.Format {
+		go func() {
+			const timeout = 10 * time.Second
+			ctx, cancel := context.WithTimeout(context.Background(), timeout)
+			defer cancel()
+
+			if err := s.uploader.Delete(
+				ctx,
+				fmt.Sprintf("%s/%s", userID.String(), imgInfo.Filename),
+			); err != nil {
+				slog.Error("failed to delete image", "msg", err.Error())
+			}
+		}()
+	}
+
 	imgInfo, err = s.imageRepository.Update(ctx, imgID, usr.ID, models.Image{
 		UserID:   usr.ID,
-		ImageURL: imgInfo.ImageURL,
-		Filename: imgInfo.Filename,
+		ImageURL: newImageURL,
+		Filename: filename,
 		Format:   t.Format,
 		Alt:      imgInfo.Alt,
 	})
