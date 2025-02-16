@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 
@@ -120,14 +121,14 @@ func (s *s3Uploader) DownloadImage(ctx context.Context, url string) ([]byte, err
 	if err != nil {
 		return nil, fmt.Errorf("failed to get object: %w", err)
 	}
+	defer resp.Body.Close()
 
-	buf := new(bytes.Buffer)
-	_, err = buf.ReadFrom(resp.Body)
+	img, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read object: %w", err)
+		return nil, fmt.Errorf("failed to read image: %w", err)
 	}
 
-	return buf.Bytes(), nil
+	return img, nil
 }
 
 func (s *s3Uploader) Delete(ctx context.Context, filepath string) error {

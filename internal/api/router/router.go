@@ -2,6 +2,7 @@ package router
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/edulustosa/imago/config"
@@ -9,6 +10,7 @@ import (
 	"github.com/edulustosa/imago/internal/api/middlewares"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/httprate"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -47,10 +49,19 @@ func New(srv Server) http.Handler {
 			S3:       srv.S3Client,
 		}
 
-		r.Post("/images", imagesHandler.Upload)
-		r.Post("/images/{id}/transform", imagesHandler.Transform)
 		r.Get("/images/{id}", imagesHandler.GetImage)
 		r.Get("/images", imagesHandler.GetImages)
+
+		r.Group(func(r chi.Router) {
+			r.Use(httprate.Limit(
+				10,
+				1*time.Minute,
+				httprate.WithKeyFuncs(httprate.KeyByIP, httprate.KeyByEndpoint),
+			))
+
+			r.Post("/images", imagesHandler.Upload)
+			r.Post("/images/{id}/transform", imagesHandler.Transform)
+		})
 	})
 
 	return r
