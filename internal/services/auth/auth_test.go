@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/edulustosa/imago/internal/database/models"
+	"github.com/edulustosa/imago/internal/domain/user"
 	"github.com/edulustosa/imago/internal/services/auth"
 	"github.com/edulustosa/imago/mock"
 )
@@ -12,7 +13,7 @@ import (
 func TestRegister(t *testing.T) {
 	ctx := context.Background()
 
-	repo := mock.NewUserRepo()
+	repo := user.NewMemoryRepo()
 	authService := auth.New(repo)
 
 	t.Run("register", func(t *testing.T) {

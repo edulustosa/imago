@@ -2,6 +2,8 @@ package user
 
 import (
 	"context"
+	"errors"
+	"time"
 
 	"github.com/edulustosa/imago/internal/database/models"
 	"github.com/google/uuid"
@@ -57,4 +59,43 @@ const createUser = "INSERT INTO users (username, password_hash) VALUES ($1, $2) 
 func (r *repo) Create(ctx context.Context, user models.User) (*models.User, error) {
 	row := r.db.QueryRow(ctx, createUser, user.Username, user.PasswordHash)
 	return scanUser(row)
+}
+
+type MemoryRepo struct {
+	Users []models.User
+}
+
+func NewMemoryRepo() *MemoryRepo {
+	return &MemoryRepo{
+		Users: []models.User{},
+	}
+}
+
+func (r *MemoryRepo) FindByID(_ context.Context, id uuid.UUID) (*models.User, error) {
+	for _, u := range r.Users {
+		if u.ID == id {
+			return &u, nil
+		}
+	}
+
+	return nil, errors.New("user not found")
+}
+
+func (r *MemoryRepo) FindByUsername(_ context.Context, username string) (*models.User, error) {
+	for _, u := range r.Users {
+		if u.Username == username {
+			return &u, nil
+		}
+	}
+
+	return nil, errors.New("user not found")
+}
+
+func (r *MemoryRepo) Create(_ context.Context, user models.User) (*models.User, error) {
+	user.ID = uuid.New()
+	user.CreatedAt = time.Now()
+	user.UpdatedAt = time.Now()
+
+	r.Users = append(r.Users, user)
+	return &user, nil
 }
