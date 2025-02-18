@@ -27,7 +27,7 @@ var (
 	ErrInvalidCredentials = errors.New("invalid credentials")
 )
 
-func (a *Auth) Register(ctx context.Context, req Request) (*models.User, error) {
+func (a *Auth) Register(ctx context.Context, req *Request) (*models.User, error) {
 	_, err := a.repo.FindByUsername(ctx, req.Username)
 	if err == nil {
 		return nil, ErrUserAlreadyExists
@@ -49,7 +49,7 @@ func (a *Auth) Register(ctx context.Context, req Request) (*models.User, error) 
 	return a.repo.Create(ctx, user)
 }
 
-func (a *Auth) Login(ctx context.Context, req Request) (*models.User, error) {
+func (a *Auth) Login(ctx context.Context, req *Request) (*models.User, error) {
 	user, err := a.repo.FindByUsername(ctx, req.Username)
 	if err != nil {
 		return nil, ErrInvalidCredentials

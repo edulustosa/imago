@@ -1,6 +1,7 @@
 package imgproc_test
 
 import (
+	"bytes"
 	"image"
 	"testing"
 
@@ -109,4 +110,40 @@ func isGrayscale(img image.Image) bool {
 	}
 
 	return true
+}
+
+func TestImageEncoding(t *testing.T) {
+	img, err := imgio.Open("./test_data/flowers.jpg")
+	if err != nil {
+		t.Fatalf("failed to open image file: %v", err)
+	}
+
+	testCases := []string{
+		"png",
+		"jpeg",
+		"bmp",
+		"tiff",
+		"gif",
+		"webp",
+	}
+
+	for _, format := range testCases {
+		t.Run(format, func(t *testing.T) {
+			want := format
+
+			imgBuff := new(bytes.Buffer)
+			if err := imgproc.Encode(imgBuff, img, format); err != nil {
+				t.Errorf("failed to encode image to %s: %v", format, err)
+			}
+
+			_, got, err := image.Decode(imgBuff)
+			if err != nil {
+				t.Errorf("failed to decode image: %v", err)
+			}
+
+			if got != want {
+				t.Errorf("expected image format to be %s, got %s", want, got)
+			}
+		})
+	}
 }

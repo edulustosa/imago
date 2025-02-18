@@ -7,9 +7,9 @@ import (
 
 	"github.com/edulustosa/imago/config"
 	"github.com/edulustosa/imago/internal/api"
-	"github.com/edulustosa/imago/internal/auth"
 	"github.com/edulustosa/imago/internal/database/models"
 	"github.com/edulustosa/imago/internal/domain/user"
+	"github.com/edulustosa/imago/internal/services/auth"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -30,7 +30,7 @@ func (a *Auth) Register(w http.ResponseWriter, r *http.Request) {
 	userRepo := user.NewRepo(a.Database)
 	authService := auth.New(userRepo)
 
-	user, err := authService.Register(r.Context(), req)
+	user, err := authService.Register(r.Context(), &req)
 	if err != nil {
 		if errors.Is(err, auth.ErrUserAlreadyExists) {
 			api.SendError(w, http.StatusConflict, api.Error{Message: err.Error()})
@@ -59,7 +59,7 @@ func (a *Auth) Login(w http.ResponseWriter, r *http.Request) {
 	userRepo := user.NewRepo(a.Database)
 	authService := auth.New(userRepo)
 
-	user, err := authService.Login(r.Context(), req)
+	user, err := authService.Login(r.Context(), &req)
 	if err != nil {
 		// The only error that can be returned here is ErrInvalidCredentials
 		api.SendError(w, http.StatusUnauthorized, api.Error{Message: err.Error()})

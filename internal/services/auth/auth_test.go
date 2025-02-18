@@ -4,66 +4,70 @@ import (
 	"context"
 	"testing"
 
-	"github.com/edulustosa/imago/internal/auth"
 	"github.com/edulustosa/imago/internal/database/models"
+	"github.com/edulustosa/imago/internal/services/auth"
 	"github.com/edulustosa/imago/mock"
 )
 
 func TestRegister(t *testing.T) {
-	repo := mock.NewUserRepo()
-	authService := auth.New(repo)
 	ctx := context.Background()
 
-	t.Run("register user", func(t *testing.T) {
-		user, err := authService.Register(ctx, auth.Request{
+	repo := mock.NewUserRepo()
+	authService := auth.New(repo)
+
+	t.Run("register", func(t *testing.T) {
+		user, err := authService.Register(ctx, &auth.Request{
 			Username: "john doe",
 			Password: "12345678",
 		})
 		if err != nil {
-			t.Errorf("error register user: %v", err)
+			t.Errorf("failed to register user: %v", err)
 		}
 
-		if user.PasswordHash == "1234568" {
-			t.Error("password is not hashed")
+		if user.PasswordHash == "12345678" {
+			t.Error("user password is not hashed")
 		}
 	})
 
 	repo.Users = []models.User{}
 
-	t.Run("register user already exists", func(t *testing.T) {
-		_, err := authService.Register(ctx, auth.Request{
+	t.Run("user already exists", func(t *testing.T) {
+		want := auth.ErrUserAlreadyExists
+
+		_, err := authService.Register(ctx, &auth.Request{
 			Username: "john doe",
 			Password: "12345678",
 		})
 		if err != nil {
-			t.Errorf("error register user: %v", err)
+			t.Errorf("failed to register user: %v", err)
 		}
 
-		_, err = authService.Register(ctx, auth.Request{
+		_, got := authService.Register(ctx, &auth.Request{
 			Username: "john doe",
 			Password: "12345678",
 		})
-		if err != auth.ErrUserAlreadyExists {
-			t.Errorf("expected %v, got %v", auth.ErrUserAlreadyExists, err)
+		if got != want {
+			t.Errorf("expected %v, got %v", want, got)
 		}
 	})
 }
 
 func TestLogin(t *testing.T) {
-	repo := mock.NewUserRepo()
-	authService := auth.New(repo)
 	ctx := context.Background()
 
+	repo := mock.NewUserRepo()
+	authService := auth.New(repo)
+
 	t.Run("login", func(t *testing.T) {
-		createdUser, err := authService.Register(ctx, auth.Request{
+		createdUser, err := authService.Register(ctx, &auth.Request{
 			Username: "john doe",
 			Password: "12345678",
 		})
 		if err != nil {
-			t.Errorf("error register user: %v", err)
+			t.Errorf("failed to register user: %v", err)
 		}
 
-		user, err := authService.Login(ctx, auth.Request{
+		user, err := authService.Login(ctx, &auth.Request{
 			Username: "john doe",
 			Password: "12345678",
 		})
@@ -77,32 +81,38 @@ func TestLogin(t *testing.T) {
 	})
 
 	repo.Users = []models.User{}
-	t.Run("login user not found", func(t *testing.T) {
-		_, err := authService.Login(ctx, auth.Request{
+
+	t.Run("user not found", func(t *testing.T) {
+		want := auth.ErrInvalidCredentials
+
+		_, got := authService.Login(ctx, &auth.Request{
 			Username: "john doe",
 			Password: "12345678",
 		})
-		if err != auth.ErrInvalidCredentials {
-			t.Errorf("expected %v, got %v", auth.ErrInvalidCredentials, err)
+		if got != want {
+			t.Errorf("expected %v, got %v", want, got)
 		}
 	})
 
 	repo.Users = []models.User{}
+
 	t.Run("login invalid password", func(t *testing.T) {
-		_, err := authService.Register(ctx, auth.Request{
+		want := auth.ErrInvalidCredentials
+
+		_, err := authService.Register(ctx, &auth.Request{
 			Username: "john doe",
 			Password: "12345678",
 		})
 		if err != nil {
-			t.Errorf("error register user: %v", err)
+			t.Errorf("failed to register user: %v", err)
 		}
 
-		_, err = authService.Login(ctx, auth.Request{
+		_, got := authService.Login(ctx, &auth.Request{
 			Username: "john doe",
 			Password: "123456",
 		})
-		if err != auth.ErrInvalidCredentials {
-			t.Errorf("expected %v, got %v", auth.ErrInvalidCredentials, err)
+		if got != want {
+			t.Errorf("expected %v, got %v", want, got)
 		}
 	})
 }
