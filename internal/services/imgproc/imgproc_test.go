@@ -146,4 +146,15 @@ func TestImageEncoding(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("unsupported format", func(t *testing.T) {
+		imgBuff := new(bytes.Buffer)
+		err := imgproc.Encode(imgBuff, img, "unsupported")
+		if err == nil {
+			t.Error("expected to fail encoding image to unsupported format")
+		}
+		if err != imgproc.ErrUnsupportedFormat {
+			t.Errorf("expected error to be %v, got %v", imgproc.ErrUnsupportedFormat, err)
+		}
+	})
 }

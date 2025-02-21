@@ -1,6 +1,7 @@
 package imgproc
 
 import (
+	"errors"
 	"fmt"
 	"image"
 	"image/gif"
@@ -83,10 +84,12 @@ var Encoders = map[string]EncoderFunc{
 	"webp": toWebp,
 }
 
+var ErrUnsupportedFormat = errors.New("unsupported file format")
+
 func Encode(w io.Writer, img image.Image, format string) error {
 	encoder, ok := Encoders[format]
 	if !ok {
-		return fmt.Errorf("unsupported file extension: %s", format)
+		return ErrUnsupportedFormat
 	}
 
 	if err := encoder(w, img); err != nil {
@@ -97,49 +100,25 @@ func Encode(w io.Writer, img image.Image, format string) error {
 }
 
 func toJpeg(w io.Writer, img image.Image) error {
-	if err := jpeg.Encode(w, img, nil); err != nil {
-		return fmt.Errorf("failed to convert jpeg: %w", err)
-	}
-
-	return nil
+	return jpeg.Encode(w, img, nil)
 }
 
 func toPng(w io.Writer, img image.Image) error {
-	if err := png.Encode(w, img); err != nil {
-		return fmt.Errorf("failed to convert jpeg: %w", err)
-	}
-
-	return nil
+	return png.Encode(w, img)
 }
 
 func toWebp(w io.Writer, img image.Image) error {
-	if err := webp.Encode(w, img, nil); err != nil {
-		return fmt.Errorf("failed to convert jpeg: %w", err)
-	}
-
-	return nil
+	return webp.Encode(w, img, nil)
 }
 
 func toGif(w io.Writer, img image.Image) error {
-	if err := gif.Encode(w, img, nil); err != nil {
-		return fmt.Errorf("failed to convert jpeg: %w", err)
-	}
-
-	return nil
+	return gif.Encode(w, img, nil)
 }
 
 func toBmp(w io.Writer, img image.Image) error {
-	if err := bmp.Encode(w, img); err != nil {
-		return fmt.Errorf("failed to convert jpeg: %w", err)
-	}
-
-	return nil
+	return bmp.Encode(w, img)
 }
 
 func toTiff(w io.Writer, img image.Image) error {
-	if err := tiff.Encode(w, img, nil); err != nil {
-		return fmt.Errorf("failed to convert jpeg: %w", err)
-	}
-
-	return nil
+	return tiff.Encode(w, img, nil)
 }

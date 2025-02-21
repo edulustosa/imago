@@ -11,7 +11,7 @@ import (
 
 	"github.com/anthonynsimon/bild/imgio"
 	"github.com/edulustosa/imago/internal/database/models"
-	"github.com/edulustosa/imago/internal/imago"
+	"github.com/edulustosa/imago/internal/services/imgproc"
 	"github.com/edulustosa/imago/internal/services/storage"
 	"github.com/edulustosa/imago/internal/upload"
 	"github.com/edulustosa/imago/mock"
@@ -112,8 +112,8 @@ func TestImageTransformations(t *testing.T) {
 			}
 		})
 
-		_, err = sut.Transform(ctx, user.ID, imgInfo.ID, imago.Transformations{
-			Resize: imago.Resize{
+		_, err = sut.Transform(ctx, user.ID, imgInfo.ID, &imgproc.Transformations{
+			Resize: imgproc.Resize{
 				Width:  100,
 				Height: 100,
 			},

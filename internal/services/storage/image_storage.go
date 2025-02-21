@@ -14,7 +14,7 @@ import (
 	"github.com/edulustosa/imago/internal/database/models"
 	"github.com/edulustosa/imago/internal/domain/images"
 	"github.com/edulustosa/imago/internal/domain/user"
-	"github.com/edulustosa/imago/internal/imago"
+	"github.com/edulustosa/imago/internal/services/imgproc"
 	"github.com/edulustosa/imago/internal/upload"
 	"github.com/google/uuid"
 )
@@ -99,7 +99,7 @@ func (s *ImageStorage) Transform(
 	ctx context.Context,
 	userID uuid.UUID,
 	imgID int,
-	t imago.Transformations,
+	t *imgproc.Transformations,
 ) (*models.Image, error) {
 	usr, err := s.userRepository.FindByID(ctx, userID)
 	if err != nil {
@@ -124,10 +124,10 @@ func (s *ImageStorage) Transform(
 		return nil, fmt.Errorf("failed to decode image: %w", err)
 	}
 
-	img = imago.Transform(img, t)
+	img = imgproc.Transform(img, t)
 	imgBuffer := new(bytes.Buffer)
-	if err := imago.Encode(imgBuffer, img, t.Format); err != nil {
-		return nil, ErrInvalidFormat
+	if err := imgproc.Encode(imgBuffer, img, t.Format); err != nil {
+		return nil, err
 	}
 
 	filename := updateFilenameExt(imgInfo.Filename, t.Format)

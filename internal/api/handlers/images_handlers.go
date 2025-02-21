@@ -12,7 +12,7 @@ import (
 	"github.com/edulustosa/imago/internal/api"
 	"github.com/edulustosa/imago/internal/domain/images"
 	"github.com/edulustosa/imago/internal/domain/user"
-	"github.com/edulustosa/imago/internal/imago"
+	"github.com/edulustosa/imago/internal/services/imgproc"
 	"github.com/edulustosa/imago/internal/services/storage"
 	"github.com/edulustosa/imago/internal/upload"
 	"github.com/go-chi/chi/v5"
@@ -53,7 +53,7 @@ func (h *Images) Upload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	imgBuff := new(bytes.Buffer)
-	if err := imago.Encode(imgBuff, img, format); err != nil {
+	if err := imgproc.Encode(imgBuff, img, format); err != nil {
 		api.SendError(w, http.StatusBadRequest, api.Error{
 			Message: err.Error(),
 		})
@@ -86,7 +86,7 @@ func (h *Images) Upload(w http.ResponseWriter, r *http.Request) {
 }
 
 type TransformRequest struct {
-	Transformations imago.Transformations `json:"transformations" validate:"required"`
+	Transformations imgproc.Transformations `json:"transformations" validate:"required"`
 }
 
 func (h *Images) Transform(w http.ResponseWriter, r *http.Request) {
@@ -110,7 +110,7 @@ func (h *Images) Transform(w http.ResponseWriter, r *http.Request) {
 	s3Uploader := upload.NewS3Uploader(h.S3, h.Env.BucketName)
 
 	imageStorage := storage.NewImageStorage(s3Uploader, userRepository, imageRepository)
-	imgInfo, err := imageStorage.Transform(r.Context(), userID, imageID, t.Transformations)
+	imgInfo, err := imageStorage.Transform(r.Context(), userID, imageID, &t.Transformations)
 	if err != nil {
 		if errors.Is(err, storage.ErrUserNotFound) {
 			api.SendError(w, http.StatusNotFound, api.Error{
