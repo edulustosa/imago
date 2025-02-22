@@ -12,17 +12,35 @@ type Env struct {
 	Addr      string `mapstructure:"SERVER_PORT"`
 	JWTSecret string `mapstructure:"JWT_SECRET"`
 
-	BucketName string `mapstructure:"BUCKET_NAME"`
-	AWSRegion  string `mapstructure:"AWS_REGION"`
+	AWSSecretKey string `mapstructure:"AWS_SECRET_KEY"`
+	AWSAccessKey string `mapstructure:"AWS_ACCESS_KEY"`
+	BucketName   string `mapstructure:"BUCKET_NAME"`
+	AWSRegion    string `mapstructure:"AWS_REGION"`
 }
 
 func LoadEnv(envPath string) (*Env, error) {
+	viper.AutomaticEnv()
+
 	viper.SetConfigType("env")
 	viper.AddConfigPath(envPath)
 	viper.SetConfigFile(".env")
 
 	if err := viper.ReadInConfig(); err != nil {
-		return nil, fmt.Errorf("failed to read env file: %w", err)
+		envs := []string{
+			"DATABASE_URL",
+			"SERVER_PORT",
+			"JWT_SECRET",
+			"BUCKET_NAME",
+			"AWS_REGION",
+			"AWS_SECRET_KEY",
+			"AWS_ACCESS_KEY",
+		}
+
+		for _, env := range envs {
+			if err := viper.BindEnv(env); err != nil {
+				return nil, fmt.Errorf("failed to bind env: %w", err)
+			}
+		}
 	}
 
 	var env Env

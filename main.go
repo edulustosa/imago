@@ -11,6 +11,7 @@ import (
 	"time"
 
 	awsConfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/edulustosa/imago/config"
 	"github.com/edulustosa/imago/internal/api/router"
@@ -60,11 +61,10 @@ func run(ctx context.Context) error {
 		return fmt.Errorf("failed to run migrations: %w", err)
 	}
 
-	cfg, err := awsConfig.LoadDefaultConfig(ctx)
+	s3Client, err := loadS3Client(ctx, env)
 	if err != nil {
-		return fmt.Errorf("failed to load AWS config: %w", err)
+		return fmt.Errorf("failed to load S3 client: %w", err)
 	}
-	s3Client := s3.NewFromConfig(cfg)
 
 	r := router.New(router.Server{
 		Database: pool,
@@ -125,4 +125,19 @@ func runMigrations(ctx context.Context, pool *pgxpool.Pool) error {
 	}
 
 	return nil
+}
+
+func loadS3Client(ctx context.Context, env *config.Env) (*s3.Client, error) {
+	cfg, err := awsConfig.LoadDefaultConfig(
+		ctx,
+		awsConfig.WithRegion(env.AWSRegion),
+		awsConfig.WithCredentialsProvider(
+			credentials.NewStaticCredentialsProvider(env.AWSAccessKey, env.AWSSecretKey, ""),
+		),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return s3.NewFromConfig(cfg), nil
 }

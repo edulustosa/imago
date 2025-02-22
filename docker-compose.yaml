@@ -5,7 +5,29 @@ services:
     restart: unless-stopped
     ports:
       - 5432:5432
+    volumes:
+      - db:/var/lib/postgresql/data
     environment:
       POSTGRESQL_USERNAME: ${DATABASE_USER}
       POSTGRESQL_PASSWORD: ${DATABASE_PASSWORD}
       POSTGRESQL_DATABASE: ${DATABASE_NAME}
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DATABASE_USER} -d ${DATABASE_NAME}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: .
+    container_name: imago-api
+    ports:
+      - 8080:8080
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  db:
+    driver: local
