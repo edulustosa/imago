@@ -7,7 +7,6 @@ import (
 	"github.com/edulustosa/imago/internal/database/models"
 	"github.com/edulustosa/imago/internal/domain/user"
 	"github.com/edulustosa/imago/internal/services/auth"
-	"github.com/edulustosa/imago/mock"
 )
 
 func TestRegister(t *testing.T) {
@@ -56,7 +55,7 @@ func TestRegister(t *testing.T) {
 func TestLogin(t *testing.T) {
 	ctx := context.Background()
 
-	repo := mock.NewUserRepo()
+	repo := user.NewMemoryRepo()
 	authService := auth.New(repo)
 
 	t.Run("login", func(t *testing.T) {

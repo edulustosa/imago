@@ -1,20 +1,20 @@
 package handlers
 
 import (
-	"bytes"
 	"errors"
-	"image"
+	"io"
 	"net/http"
+	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/edulustosa/imago/config"
 	"github.com/edulustosa/imago/internal/api"
-	"github.com/edulustosa/imago/internal/domain/images"
+	"github.com/edulustosa/imago/internal/domain/img"
 	"github.com/edulustosa/imago/internal/domain/user"
 	"github.com/edulustosa/imago/internal/services/imgproc"
-	"github.com/edulustosa/imago/internal/services/storage"
-	"github.com/edulustosa/imago/internal/upload"
+	"github.com/edulustosa/imago/internal/storage"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -35,45 +35,42 @@ func (h *Images) Upload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	file, handler, err := r.FormFile("image")
+	imgFile, handler, err := r.FormFile("image")
 	if err != nil {
 		api.SendError(w, http.StatusBadRequest, api.Error{
 			Message: "failed to read file",
 		})
 		return
 	}
-	defer file.Close()
+	defer imgFile.Close()
 
-	img, format, err := image.Decode(file)
+	imgData, err := io.ReadAll(imgFile)
 	if err != nil {
-		api.SendError(w, http.StatusBadRequest, api.Error{
-			Message: "failed to decode image",
-		})
-		return
-	}
-
-	imgBuff := new(bytes.Buffer)
-	if err := imgproc.Encode(imgBuff, img, format); err != nil {
-		api.SendError(w, http.StatusBadRequest, api.Error{
-			Message: err.Error(),
-		})
+		api.InternalError(w, "failed to read image", "error", err)
 		return
 	}
 
 	userRepository := user.NewRepo(h.Database)
-	imageRepository := images.NewRepo(h.Database)
-	s3Uploader := upload.NewS3Uploader(h.S3, h.Env.BucketName)
+	imageRepository := img.NewRepo(h.Database)
+	s3ImageStorage := storage.NewS3ImageStorage(h.S3, h.Env.BucketName)
 
-	imageStorage := storage.NewImageStorage(s3Uploader, userRepository, imageRepository)
-	imgInfo, err := imageStorage.Upload(r.Context(), userID, imgBuff.Bytes(), storage.Metadata{
+	upload := imgproc.NewUpload(userRepository, imageRepository, s3ImageStorage)
+	imgInfo, err := upload.Do(r.Context(), userID, imgData, &imgproc.ImageMetadata{
 		Filename: handler.Filename,
-		Format:   format,
+		Format:   strings.TrimPrefix(filepath.Ext(handler.Filename), "."),
 		Alt:      r.FormValue("alt"),
 	})
 	if err != nil {
-		if errors.Is(err, storage.ErrUserNotFound) {
+		if errors.Is(err, imgproc.ErrUserNotFound) {
 			api.SendError(w, http.StatusNotFound, api.Error{
 				Message: "user not found",
+			})
+			return
+		}
+
+		if errors.Is(err, imgproc.ErrInvalidImage) {
+			api.SendError(w, http.StatusBadRequest, api.Error{
+				Message: err.Error(),
 			})
 			return
 		}
@@ -105,30 +102,22 @@ func (h *Images) Transform(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userRepository := user.NewRepo(h.Database)
-	imageRepository := images.NewRepo(h.Database)
-	s3Uploader := upload.NewS3Uploader(h.S3, h.Env.BucketName)
+	imageRepository := img.NewRepo(h.Database)
+	s3ImageStorage := storage.NewS3ImageStorage(h.S3, h.Env.BucketName)
 
-	imageStorage := storage.NewImageStorage(s3Uploader, userRepository, imageRepository)
-	imgInfo, err := imageStorage.Transform(r.Context(), userID, imageID, &t.Transformations)
+	transformation := imgproc.NewImageTransformation(imageRepository, s3ImageStorage)
+	imgInfo, err := transformation.Transform(r.Context(), imageID, userID, &t.Transformations)
 	if err != nil {
-		if errors.Is(err, storage.ErrUserNotFound) {
+		if errors.Is(err, imgproc.ErrImageNotFound) {
 			api.SendError(w, http.StatusNotFound, api.Error{
-				Message: "user not found",
+				Message: err.Error(),
 			})
 			return
 		}
 
-		if errors.Is(err, storage.ErrImageNotFound) {
-			api.SendError(w, http.StatusNotFound, api.Error{
-				Message: "image not found",
-			})
-			return
-		}
-
-		if errors.Is(err, storage.ErrInvalidFormat) {
+		if errors.Is(err, imgproc.ErrUnsupportedFormat) {
 			api.SendError(w, http.StatusBadRequest, api.Error{
-				Message: "image format not supported",
+				Message: "unsupported image format",
 			})
 			return
 		}
@@ -151,19 +140,19 @@ func (h *Images) GetImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userRepository := user.NewRepo(h.Database)
-	imageRepository := images.NewRepo(h.Database)
-	imageService := images.NewService(imageRepository, userRepository)
+	imageRepository := img.NewRepo(h.Database)
+	imageService := img.NewService(imageRepository, userRepository)
 
 	imgInfo, err := imageService.GetImage(r.Context(), imageID, userID)
 	if err != nil {
-		if errors.Is(err, images.ErrImageNotFound) {
+		if errors.Is(err, img.ErrImageNotFound) {
 			api.SendError(w, http.StatusNotFound, api.Error{
 				Message: "image not found",
 			})
 			return
 		}
 
-		if errors.Is(err, images.ErrUserNotFound) {
+		if errors.Is(err, img.ErrUserNotFound) {
 			api.SendError(w, http.StatusNotFound, api.Error{
 				Message: "user not found",
 			})
@@ -187,12 +176,12 @@ func (h *Images) GetImages(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userRepository := user.NewRepo(h.Database)
-	imageRepository := images.NewRepo(h.Database)
-	imageService := images.NewService(imageRepository, userRepository)
+	imageRepository := img.NewRepo(h.Database)
+	imageService := img.NewService(imageRepository, userRepository)
 
 	imgs, err := imageService.GetImages(r.Context(), userID, page, limit)
 	if err != nil {
-		if errors.Is(err, images.ErrUserNotFound) {
+		if errors.Is(err, img.ErrUserNotFound) {
 			api.SendError(w, http.StatusNotFound, api.Error{
 				Message: "user not found",
 			})
