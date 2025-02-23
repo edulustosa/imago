@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/edulustosa/imago/config"
 	"github.com/edulustosa/imago/internal/api"
+	"github.com/edulustosa/imago/internal/database/models"
 	"github.com/edulustosa/imago/internal/domain/img"
 	"github.com/edulustosa/imago/internal/domain/user"
 	"github.com/edulustosa/imago/internal/services/imgproc"
@@ -26,6 +27,23 @@ type Images struct {
 	S3       *s3.Client
 }
 
+// @Summary	Upload an image
+// @Tags		images
+//
+// @Accept		multipart/form-data
+// @Produce		json
+//
+// @Param		image formData file true "Image file"
+// @Param		alt formData string false "Image alt text"
+//
+// @Success	201	{object} models.Image
+// @Failure	400	{object} api.Error "Invalid request"
+// @Failure	401	{object} api.Error "Unauthorized"
+// @Failure	404	{object} api.Error "User not found"
+// @Failure	500	{object} api.Error "Internal server error"
+//
+// @Security	BearerAuth
+// @Router		/images [post]
 func (h *Images) Upload(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(api.UserIDKey).(uuid.UUID)
 	if err := r.ParseMultipartForm(10 << 20); err != nil {
@@ -86,6 +104,23 @@ type TransformRequest struct {
 	Transformations imgproc.Transformations `json:"transformations" validate:"required"`
 }
 
+// @Summary	Transform an image
+// @Tags		images
+//
+// @Accept		json
+// @Produce		json
+//
+// @Param		id path int true "Image id"
+// @Param		transformations body TransformRequest true "Image operations"
+//
+// @Success	200	{object} models.Image
+// @Failure	400	{object} api.Error "Unsupported image format"
+// @Failure	401	{object} api.Error "Unauthorized"
+// @Failure	404	{object} api.Error "Image not found"
+// @Failure	500	{object} api.Error "Internal server error"
+//
+// @Security	BearerAuth
+// @Router		/images/{id}/transform [post]
 func (h *Images) Transform(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(api.UserIDKey).(uuid.UUID)
 	imageID, err := strconv.Atoi(chi.URLParam(r, "id"))
@@ -129,6 +164,20 @@ func (h *Images) Transform(w http.ResponseWriter, r *http.Request) {
 	api.Encode(w, http.StatusOK, imgInfo)
 }
 
+// @Summary	Get an image
+// @Tags		images
+//
+// @Param		id path int true "Image id"
+// @Produce		json
+//
+// @Success	200	{object} models.Image
+// @Failure	400	{object} api.Error "Invalid image id"
+// @Failure	401	{object} api.Error "Unauthorized"
+// @Failure	404	{object} api.Error "Image or user not found"
+// @Failure	500	{object} api.Error "Internal server error"
+//
+// @Security	BearerAuth
+// @Router		/images/{id} [get]
 func (h *Images) GetImage(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(api.UserIDKey).(uuid.UUID)
 	imageID, err := strconv.Atoi(chi.URLParam(r, "id"))
@@ -163,6 +212,24 @@ func (h *Images) GetImage(w http.ResponseWriter, r *http.Request) {
 	api.Encode(w, http.StatusOK, imgInfo)
 }
 
+type GetImagesResponse struct {
+	Images []models.Image `json:"images"`
+}
+
+// @Summary	Get images
+// @Tags		images
+//
+// @Param		page query int false "Page number"
+// @Param		limit query int false "Number of images per page"
+// @Produce		json
+//
+// @Success 200 {object} GetImagesResponse
+// @Failure	401	{object} api.Error "Unauthorized"
+// @Failure	404	{object} api.Error "Image or user not found"
+// @Failure	500	{object} api.Error "Internal server error"
+//
+// @Security	BearerAuth
+// @Router		/images [get]
 func (h *Images) GetImages(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(api.UserIDKey).(uuid.UUID)
 	page, err := strconv.Atoi(r.URL.Query().Get("page"))
@@ -192,5 +259,5 @@ func (h *Images) GetImages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	api.Encode(w, http.StatusOK, api.Map{"images": imgs})
+	api.Encode(w, http.StatusOK, GetImagesResponse{imgs})
 }

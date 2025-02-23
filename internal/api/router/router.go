@@ -12,6 +12,9 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/httprate"
 	"github.com/jackc/pgx/v5/pgxpool"
+	httpSwagger "github.com/swaggo/http-swagger"
+
+	_ "github.com/edulustosa/imago/docs" // Swagger docs
 )
 
 type Server struct {
@@ -20,6 +23,11 @@ type Server struct {
 	S3Client *s3.Client
 }
 
+//	@title			Imago API
+//	@version		1.0
+//	@description	Imago is a backend system for an image processing service similar to Cloudinary.
+
+// @host	localhost:8080
 func New(srv Server) http.Handler {
 	r := chi.NewRouter()
 
@@ -63,6 +71,8 @@ func New(srv Server) http.Handler {
 			r.Post("/images/{id}/transform", imagesHandler.Transform)
 		})
 	})
+
+	r.Get("/swagger/*", httpSwagger.Handler())
 
 	return r
 }

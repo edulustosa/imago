@@ -20,6 +20,19 @@ type Auth struct {
 	Env      *config.Env
 }
 
+// @Summary	Register a new user
+// @Tags		auth
+//
+// @Accept		json
+// @Produce	json
+// @Param		body	body		auth.Request	true	"User registration request"
+//
+// @Success	201		{object}	models.User
+// @Failure	400		{object}	api.Error
+// @Failure	409		{object}	api.Error "User already exists"
+// @Failure	500		{object}	api.Error
+//
+// @Router		/register [post]
 func (a *Auth) Register(w http.ResponseWriter, r *http.Request) {
 	req, problems, err := api.Decode[auth.Request](r)
 	if err != nil {
@@ -49,6 +62,18 @@ type LoginResponse struct {
 	Token string       `json:"token"`
 }
 
+// @Summary	Login a user
+// @Tags		auth
+//
+// @Accept		json
+// @Produce	json
+// @Param		body	body		auth.Request	true	"User login request"
+//
+// @Success	200		{object}	LoginResponse
+// @Failure	400		{object}	api.Error
+// @Failure	401		{object}	api.Error "Invalid credentials"
+//
+// @Router		/login [post]
 func (a *Auth) Login(w http.ResponseWriter, r *http.Request) {
 	req, problems, err := api.Decode[auth.Request](r)
 	if err != nil {

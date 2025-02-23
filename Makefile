@@ -7,6 +7,8 @@ GOLANGCI_LINT_BIN = $(shell go env GOPATH)/bin/golangci-lint
 # Path to the air binary
 AIR_BIN = $(shell go env GOPATH)/bin/air
 
+SWAG_BIN = $(shell go env GOPATH)/bin/swag
+
 # Ensure golangci-lint is installed
 .PHONY: ensure-golangci-lint
 ensure-golangci-lint:
@@ -23,6 +25,13 @@ ensure-air:
 		go install github.com/air-verse/air@latest; \
 	}
 
+.PHONY: ensure-swag
+ensure-swag:
+	@which swag > /dev/null || { \
+		echo "installing swag..."; \
+		go install github.com/swaggo/swag/cmd/swag@latest; \
+	}
+
 run: ensure-air
 	$(AIR_BIN)
 
@@ -31,3 +40,6 @@ lint: ensure-golangci-lint
 
 test:
 	go test -v ./...
+
+doc: ensure-swag
+	$(SWAG_BIN) init -g ./internal/api/router/router.go

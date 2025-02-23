@@ -1,0 +1,340 @@
+definitions:
+  api.Error:
+    properties:
+      details:
+        type: string
+      message:
+        type: string
+    type: object
+  auth.Request:
+    properties:
+      password:
+        maxLength: 32
+        minLength: 8
+        type: string
+      username:
+        maxLength: 32
+        minLength: 3
+        type: string
+    required:
+    - password
+    - username
+    type: object
+  handlers.GetImagesResponse:
+    properties:
+      images:
+        items:
+          $ref: '#/definitions/models.Image'
+        type: array
+    type: object
+  handlers.LoginResponse:
+    properties:
+      token:
+        type: string
+      user:
+        $ref: '#/definitions/models.User'
+    type: object
+  handlers.TransformRequest:
+    properties:
+      transformations:
+        $ref: '#/definitions/imgproc.Transformations'
+    required:
+    - transformations
+    type: object
+  imgproc.Crop:
+    properties:
+      height:
+        type: integer
+      width:
+        type: integer
+      x:
+        type: integer
+      "y":
+        type: integer
+    type: object
+  imgproc.Filters:
+    properties:
+      grayscale:
+        type: boolean
+      sepia:
+        type: boolean
+    type: object
+  imgproc.Resize:
+    properties:
+      height:
+        type: integer
+      width:
+        type: integer
+    type: object
+  imgproc.Transformations:
+    properties:
+      crop:
+        $ref: '#/definitions/imgproc.Crop'
+      filters:
+        $ref: '#/definitions/imgproc.Filters'
+      format:
+        type: string
+      resize:
+        $ref: '#/definitions/imgproc.Resize'
+      rotate:
+        type: number
+    required:
+    - format
+    type: object
+  models.Image:
+    properties:
+      alt:
+        type: string
+      createdAt:
+        type: string
+      filename:
+        type: string
+      format:
+        type: string
+      id:
+        type: integer
+      imageUrl:
+        type: string
+      updatedAt:
+        type: string
+      userId:
+        type: string
+    type: object
+  models.User:
+    properties:
+      createdAt:
+        type: string
+      id:
+        type: string
+      updatedAt:
+        type: string
+      username:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: Imago is a backend system for an image processing service similar to
+    Cloudinary.
+  title: Imago API
+  version: "1.0"
+paths:
+  /images:
+    get:
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Number of images per page
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.GetImagesResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Image or user not found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - BearerAuth: []
+      summary: Get images
+      tags:
+      - images
+    post:
+      consumes:
+      - multipart/form-data
+      parameters:
+      - description: Image file
+        in: formData
+        name: image
+        required: true
+        type: file
+      - description: Image alt text
+        in: formData
+        name: alt
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Image'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - BearerAuth: []
+      summary: Upload an image
+      tags:
+      - images
+  /images/{id}:
+    get:
+      parameters:
+      - description: Image id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Image'
+        "400":
+          description: Invalid image id
+          schema:
+            $ref: '#/definitions/api.Error'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Image or user not found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - BearerAuth: []
+      summary: Get an image
+      tags:
+      - images
+  /images/{id}/transform:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Image id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Image operations
+        in: body
+        name: transformations
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.TransformRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Image'
+        "400":
+          description: Unsupported image format
+          schema:
+            $ref: '#/definitions/api.Error'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/api.Error'
+        "404":
+          description: Image not found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - BearerAuth: []
+      summary: Transform an image
+      tags:
+      - images
+  /login:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: User login request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/auth.Request'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.LoginResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "401":
+          description: Invalid credentials
+          schema:
+            $ref: '#/definitions/api.Error'
+      summary: Login a user
+      tags:
+      - auth
+  /register:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: User registration request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/auth.Request'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.User'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.Error'
+        "409":
+          description: User already exists
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.Error'
+      summary: Register a new user
+      tags:
+      - auth
+swagger: "2.0"
