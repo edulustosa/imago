@@ -94,7 +94,15 @@ func TestImageTransformations(t *testing.T) {
 	})
 
 	t.Run("sepia", func(t *testing.T) {
-		t.Skip("could not be implemented")
+		sepiaImg := imgproc.Transform(img, &imgproc.Transformations{
+			Filters: imgproc.Filters{
+				Sepia: true,
+			},
+		})
+
+		if !isSepia(sepiaImg) {
+			t.Error("expected image to be sepia")
+		}
 	})
 }
 
@@ -110,6 +118,39 @@ func isGrayscale(img image.Image) bool {
 	}
 
 	return true
+}
+
+func isSepia(img image.Image) bool {
+	bounds := img.Bounds()
+	width, height := bounds.Max.X, bounds.Max.Y
+	totalPixels := width * height
+	sepiaPixels := 0
+
+	for y := 0; y < height; y++ {
+		for x := 0; x < width; x++ {
+			r, g, b, _ := img.At(x, y).RGBA()
+
+			r8 := float64(r >> 8)
+			g8 := float64(g >> 8)
+			b8 := float64(b >> 8)
+
+			if g8 == 0 || b8 == 0 {
+				continue
+			}
+
+			redGreenRatio := r8 / g8
+			redBlueRatio := r8 / b8
+
+			if r8 > g8 && g8 > b8 &&
+				redGreenRatio >= 1.0 && redGreenRatio <= 1.4 &&
+				redBlueRatio >= 1.4 && redBlueRatio <= 2.5 {
+				sepiaPixels++
+			}
+		}
+	}
+
+	sepiaPercentage := float64(sepiaPixels) / float64(totalPixels)
+	return sepiaPercentage >= 0.7
 }
 
 func TestImageEncoding(t *testing.T) {
