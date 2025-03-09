@@ -12,15 +12,19 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/httprate"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/redis/go-redis/v9"
+	"github.com/segmentio/kafka-go"
 	httpSwagger "github.com/swaggo/http-swagger"
 
 	_ "github.com/edulustosa/imago/docs" // Swagger docs
 )
 
 type Server struct {
-	Database *pgxpool.Pool
-	Env      *config.Env
-	S3Client *s3.Client
+	Database    *pgxpool.Pool
+	Env         *config.Env
+	S3Client    *s3.Client
+	RedisClient *redis.Client
+	KafkaWriter *kafka.Writer
 }
 
 //	@title			Imago API
@@ -52,9 +56,11 @@ func New(srv Server) http.Handler {
 		r.Use(authMiddleware.VerifyToken)
 
 		imagesHandler := &handlers.Images{
-			Database: srv.Database,
-			Env:      srv.Env,
-			S3:       srv.S3Client,
+			Database:    srv.Database,
+			Env:         srv.Env,
+			S3Client:    srv.S3Client,
+			RedisClient: srv.RedisClient,
+			KafkaWriter: srv.KafkaWriter,
 		}
 
 		r.Get("/images/{id}", imagesHandler.GetImage)

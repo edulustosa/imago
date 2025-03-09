@@ -14,17 +14,22 @@ import (
 	"github.com/edulustosa/imago/internal/database/models"
 	"github.com/edulustosa/imago/internal/domain/img"
 	"github.com/edulustosa/imago/internal/domain/user"
+	"github.com/edulustosa/imago/internal/queue"
 	"github.com/edulustosa/imago/internal/services/imgproc"
 	"github.com/edulustosa/imago/internal/storage"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/redis/go-redis/v9"
+	"github.com/segmentio/kafka-go"
 )
 
 type Images struct {
-	Database *pgxpool.Pool
-	Env      *config.Env
-	S3       *s3.Client
+	Database    *pgxpool.Pool
+	Env         *config.Env
+	S3Client    *s3.Client
+	RedisClient *redis.Client
+	KafkaWriter *kafka.Writer
 }
 
 // @Summary	Upload an image
@@ -70,7 +75,7 @@ func (h *Images) Upload(w http.ResponseWriter, r *http.Request) {
 
 	userRepository := user.NewRepo(h.Database)
 	imageRepository := img.NewRepo(h.Database)
-	s3ImageStorage := storage.NewS3ImageStorage(h.S3, h.Env.BucketName)
+	s3ImageStorage := storage.NewS3ImageStorage(h.S3Client, h.Env.BucketName)
 
 	upload := imgproc.NewUpload(userRepository, imageRepository, s3ImageStorage)
 	imgInfo, err := upload.Do(r.Context(), userID, imgData, &imgproc.ImageMetadata{
@@ -137,31 +142,18 @@ func (h *Images) Transform(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	imageRepository := img.NewRepo(h.Database)
-	s3ImageStorage := storage.NewS3ImageStorage(h.S3, h.Env.BucketName)
-
-	transformation := imgproc.NewImageTransformation(imageRepository, s3ImageStorage)
-	imgInfo, err := transformation.Transform(r.Context(), imageID, userID, &t.Transformations)
+	transformationsProducer := queue.NewTransformationProducer(h.KafkaWriter, h.RedisClient)
+	processStatus, err := transformationsProducer.Enqueue(r.Context(), &queue.TransformationMessage{
+		ImageID:         imageID,
+		UserID:          userID,
+		Transformations: &t.Transformations,
+	})
 	if err != nil {
-		if errors.Is(err, imgproc.ErrImageNotFound) {
-			api.SendError(w, http.StatusNotFound, api.Error{
-				Message: err.Error(),
-			})
-			return
-		}
-
-		if errors.Is(err, imgproc.ErrUnsupportedFormat) {
-			api.SendError(w, http.StatusBadRequest, api.Error{
-				Message: "unsupported image format",
-			})
-			return
-		}
-
-		api.InternalError(w, "failed to transform image", "error", err)
+		api.InternalError(w, "failed to enqueue transformation", "error", err)
 		return
 	}
 
-	api.Encode(w, http.StatusOK, imgInfo)
+	api.Encode(w, http.StatusAccepted, processStatus)
 }
 
 // @Summary	Get an image

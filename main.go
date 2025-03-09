@@ -18,6 +18,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
+	"github.com/redis/go-redis/v9"
+	"github.com/segmentio/kafka-go"
 )
 
 func main() {
@@ -66,10 +68,25 @@ func run(ctx context.Context) error {
 		return fmt.Errorf("failed to load S3 client: %w", err)
 	}
 
+	redisClient, err := connectToRedis(ctx, env.RedisURL)
+	if err != nil {
+		return fmt.Errorf("failed to connect to Redis: %w", err)
+	}
+	defer redisClient.Close()
+
+	kafkaWriter := &kafka.Writer{
+		Addr:                   kafka.TCP(env.KafkaBroker),
+		Topic:                  env.KafkaTasksTopic,
+		Balancer:               &kafka.LeastBytes{},
+		AllowAutoTopicCreation: true,
+	}
+
 	r := router.New(router.Server{
-		Database: pool,
-		Env:      env,
-		S3Client: s3Client,
+		Database:    pool,
+		Env:         env,
+		S3Client:    s3Client,
+		RedisClient: redisClient,
+		KafkaWriter: kafkaWriter,
 	})
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%s", env.Addr),
@@ -140,4 +157,19 @@ func loadS3Client(ctx context.Context, env *config.Env) (*s3.Client, error) {
 	}
 
 	return s3.NewFromConfig(cfg), nil
+}
+
+func connectToRedis(ctx context.Context, url string) (*redis.Client, error) {
+	opt, err := redis.ParseURL(url)
+	if err != nil {
+		return nil, err
+	}
+
+	client := redis.NewClient(opt)
+
+	if _, err := client.Ping(ctx).Result(); err != nil {
+		return nil, err
+	}
+
+	return client, nil
 }

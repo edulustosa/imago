@@ -19,6 +19,8 @@ type Env struct {
 
 	KafkaBroker     string `mapstructure:"KAFKA_BROKER"`
 	KafkaTasksTopic string `mapstructure:"KAFKA_TASKS_TOPIC"`
+
+	RedisURL string `mapstructure:"REDIS_URL"`
 }
 
 func LoadEnv(envPath string) (*Env, error) {

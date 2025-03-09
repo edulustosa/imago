@@ -40,6 +40,15 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
 
+  redis:
+    image: redis/redis-stack:latest
+    container_name: redis
+    ports:
+      - '6379:6379'
+      - '8001:8001'
+    volumes:
+      - redis-data:/data
+
 #  api:
 #    build: .
 #    container_name: imago-api
@@ -53,4 +62,6 @@ services:
 
 volumes:
   db:
+    driver: local
+  redis-data:
     driver: local
