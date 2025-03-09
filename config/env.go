@@ -16,6 +16,9 @@ type Env struct {
 	AWSAccessKey string `mapstructure:"AWS_ACCESS_KEY"`
 	BucketName   string `mapstructure:"BUCKET_NAME"`
 	AWSRegion    string `mapstructure:"AWS_REGION"`
+
+	KafkaBroker     string `mapstructure:"KAFKA_BROKER"`
+	KafkaTasksTopic string `mapstructure:"KAFKA_TASKS_TOPIC"`
 }
 
 func LoadEnv(envPath string) (*Env, error) {
@@ -34,11 +37,13 @@ func LoadEnv(envPath string) (*Env, error) {
 			"AWS_REGION",
 			"AWS_SECRET_KEY",
 			"AWS_ACCESS_KEY",
+			"KAFKA_BROKER",
+			"KAFKA_TASKS_TOPIC",
 		}
 
 		for _, env := range envs {
 			if err := viper.BindEnv(env); err != nil {
-				return nil, fmt.Errorf("failed to bind env: %w", err)
+				return nil, fmt.Errorf("failed to bind env %s: %w", env, err)
 			}
 		}
 	}
