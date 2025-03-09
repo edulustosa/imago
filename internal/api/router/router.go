@@ -65,6 +65,7 @@ func New(srv Server) http.Handler {
 
 		r.Get("/images/{id}", imagesHandler.GetImage)
 		r.Get("/images", imagesHandler.GetImages)
+		r.Get("/images/{id}/status", handlers.GetTransformationStatus(srv.RedisClient))
 
 		r.Group(func(r chi.Router) {
 			r.Use(httprate.Limit(
