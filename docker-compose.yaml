@@ -5,8 +5,6 @@ services:
     restart: unless-stopped
     ports:
       - 5432:5432
-    volumes:
-      - db:/var/lib/postgresql/data
     environment:
       POSTGRESQL_USERNAME: ${DATABASE_USER}
       POSTGRESQL_PASSWORD: ${DATABASE_PASSWORD}
@@ -46,9 +44,6 @@ services:
     ports:
       - '6379:6379'
       - '8001:8001'
-    volumes:
-      - redis-data:/data
-
 #  api:
 #    build: .
 #    container_name: imago-api
@@ -59,9 +54,3 @@ services:
 #    depends_on:
 #      db:
 #        condition: service_healthy
-
-volumes:
-  db:
-    driver: local
-  redis-data:
-    driver: local

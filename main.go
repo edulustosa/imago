@@ -15,6 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/edulustosa/imago/config"
 	"github.com/edulustosa/imago/internal/api/router"
+	"github.com/edulustosa/imago/internal/queue"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
@@ -95,6 +96,25 @@ func run(ctx context.Context) error {
 		ReadTimeout:  2 * time.Minute,
 		WriteTimeout: 2 * time.Minute,
 	}
+
+	kafkaReader := kafka.NewReader(kafka.ReaderConfig{
+		Brokers:     []string{env.KafkaBroker},
+		Topic:       env.KafkaTasksTopic,
+		GroupID:     "imago-transformation-processor",
+		MaxBytes:    10e6,
+		MinBytes:    1e3,
+		StartOffset: kafka.LastOffset,
+	})
+
+	consumer := queue.NewTransformationConsumer(
+		kafkaReader,
+		redisClient,
+		pool,
+		s3Client,
+		env.BucketName,
+	)
+	consumer.Start(ctx)
+	defer consumer.Stop()
 
 	defer func() {
 		const timeout = 5 * time.Second
