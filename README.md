@@ -27,4 +27,4 @@ docker-compose up -d
 
 ## Documentation
 
-The API documentation can be found at [http://localhost:3000/docs](http://localhost:3000/docs).
+The API documentation can be found at http://localhost:PORT/swagger/index.html.
