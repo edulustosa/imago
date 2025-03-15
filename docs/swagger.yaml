@@ -111,6 +111,27 @@ definitions:
       username:
         type: string
     type: object
+  queue.Status:
+    enum:
+    - pending
+    - done
+    - failed
+    type: string
+    x-enum-varnames:
+    - StatusPending
+    - StatusDone
+    - StatusFailed
+  queue.TransformationStatus:
+    properties:
+      error:
+        type: string
+      imageId:
+        type: integer
+      status:
+        $ref: '#/definitions/queue.Status'
+      statusId:
+        type: string
+    type: object
 host: localhost:8080
 info:
   contact: {}
@@ -231,6 +252,34 @@ paths:
       summary: Get an image
       tags:
       - images
+  /images/{id}/status:
+    get:
+      parameters:
+      - description: Callback id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Status of the transformation
+          schema:
+            $ref: '#/definitions/queue.TransformationStatus'
+        "404":
+          description: Status not found
+          schema:
+            $ref: '#/definitions/api.Error'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/api.Error'
+      security:
+      - BearerAuth: []
+      summary: Get transformation status of an image transformation
+      tags:
+      - images
   /images/{id}/transform:
     post:
       consumes:
@@ -253,17 +302,13 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.Image'
+            $ref: '#/definitions/queue.TransformationStatus'
         "400":
-          description: Unsupported image format
+          description: Invalid parameters
           schema:
             $ref: '#/definitions/api.Error'
         "401":
           description: Unauthorized
-          schema:
-            $ref: '#/definitions/api.Error'
-        "404":
-          description: Image not found
           schema:
             $ref: '#/definitions/api.Error'
         "500":

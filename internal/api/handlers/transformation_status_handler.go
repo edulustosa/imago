@@ -8,6 +8,18 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+// @Summary	Get transformation status of an image transformation
+// @Tags images
+//
+// @Param	id path string true "Callback id"
+// @Produce json
+//
+// @Success 200 {object} queue.TransformationStatus "Status of the transformation"
+// @Failure 404 {object} api.Error "Status not found"
+// @Failure 500 {object} api.Error "Internal server error"
+//
+// @Router /images/{id}/status [get]
+// @Security BearerAuth
 func GetTransformationStatus(redisClient *redis.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		callbackID := chi.URLParam(r, "id")

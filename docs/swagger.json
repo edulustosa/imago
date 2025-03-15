@@ -185,6 +185,51 @@
                 }
             }
         },
+        "/images/{id}/status": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "images"
+                ],
+                "summary": "Get transformation status of an image transformation",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Callback id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Status of the transformation",
+                        "schema": {
+                            "$ref": "#/definitions/queue.TransformationStatus"
+                        }
+                    },
+                    "404": {
+                        "description": "Status not found",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/api.Error"
+                        }
+                    }
+                }
+            }
+        },
         "/images/{id}/transform": {
             "post": {
                 "security": [
@@ -224,23 +269,17 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.Image"
+                            "$ref": "#/definitions/queue.TransformationStatus"
                         }
                     },
                     "400": {
-                        "description": "Unsupported image format",
+                        "description": "Invalid parameters",
                         "schema": {
                             "$ref": "#/definitions/api.Error"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/api.Error"
-                        }
-                    },
-                    "404": {
-                        "description": "Image not found",
                         "schema": {
                             "$ref": "#/definitions/api.Error"
                         }
@@ -519,6 +558,36 @@
                     "type": "string"
                 },
                 "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "queue.Status": {
+            "type": "string",
+            "enum": [
+                "pending",
+                "done",
+                "failed"
+            ],
+            "x-enum-varnames": [
+                "StatusPending",
+                "StatusDone",
+                "StatusFailed"
+            ]
+        },
+        "queue.TransformationStatus": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string"
+                },
+                "imageId": {
+                    "type": "integer"
+                },
+                "status": {
+                    "$ref": "#/definitions/queue.Status"
+                },
+                "statusId": {
                     "type": "string"
                 }
             }

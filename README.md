@@ -17,10 +17,14 @@ Imago is a backend system for an image processing service similar to Cloudinary.
 - Retrieve images in different formats
 - List images
 
+## How to run
+
+To run you must have Docker installed on your machine. Replace `.env.example` to `.env` and replace each field accordantly . Then you can run the following command to start the service:
+
+```bash
+docker-compose up -d
+```
+
 ## Documentation
 
-In progress...
-
-## Next Steps
-
-- Use a message queue to handle image transformation operations.
+The API documentation can be found at [http://localhost:3000/docs](http://localhost:3000/docs).

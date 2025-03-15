@@ -118,10 +118,9 @@ type TransformRequest struct {
 // @Param		id path int true "Image id"
 // @Param		transformations body TransformRequest true "Image operations"
 //
-// @Success	200	{object} models.Image
-// @Failure	400	{object} api.Error "Unsupported image format"
+// @Success	200	{object} queue.TransformationStatus
+// @Failure	400	{object} api.Error "Invalid parameters"
 // @Failure	401	{object} api.Error "Unauthorized"
-// @Failure	404	{object} api.Error "Image not found"
 // @Failure	500	{object} api.Error "Internal server error"
 //
 // @Security	BearerAuth

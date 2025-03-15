@@ -9,11 +9,11 @@ services:
       POSTGRESQL_USERNAME: ${DATABASE_USER}
       POSTGRESQL_PASSWORD: ${DATABASE_PASSWORD}
       POSTGRESQL_DATABASE: ${DATABASE_NAME}
-  #    healthcheck:
-  #      test: ['CMD-SHELL', 'pg_isready -U ${DATABASE_USER} -d ${DATABASE_NAME}']
-  #      interval: 10s
-  #      timeout: 5s
-  #      retries: 5
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DATABASE_USER} -d ${DATABASE_NAME}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   zookeeper:
     image: confluentinc/cp-zookeeper:latest
@@ -40,17 +40,22 @@ services:
 
   redis:
     image: redis/redis-stack:latest
-    container_name: redis
+    container_name: imago-redis
     ports:
       - '6379:6379'
       - '8001:8001'
-#  api:
-#    build: .
-#    container_name: imago-api
-#    ports:
-#      - 8080:8080
-#    env_file:
-#      - .env
-#    depends_on:
-#      db:
-#        condition: service_healthy
+
+  api:
+    build: .
+    container_name: imago-api
+    ports:
+      - 8080:8080
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      kafka:
+        condition: service_started

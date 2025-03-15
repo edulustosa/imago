@@ -41,6 +41,7 @@ func LoadEnv(envPath string) (*Env, error) {
 			"AWS_ACCESS_KEY",
 			"KAFKA_BROKER",
 			"KAFKA_TASKS_TOPIC",
+			"REDIS_URL",
 		}
 
 		for _, env := range envs {
